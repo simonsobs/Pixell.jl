@@ -1,5 +1,9 @@
 module Pixell
 
-# Write your package code here.
+using WCS
+using FITSIO
+using FFTW
+
+include("enmap.jl")
 
 end
