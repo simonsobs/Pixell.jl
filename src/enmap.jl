@@ -152,3 +152,15 @@ function Base.copy(bc::Broadcast.Broadcasted{<:EnmapStyle{S}}) where {S}
     bc_ = Broadcast.Broadcasted{S}(bc.f, args_, bc.axes)
     Enmap(copy(bc_), bc.args[1][1])
 end
+
+
+# read fits file into Enmap: a simple start
+function read_map(path; hduindex=1, wcs=nothing)
+    f = FITS(path, "r")
+    hdu = f[hduindex]
+    if isnothing(wcs)
+        header = read_header(hdu, String)
+        wcs = WCS.from_header(header)[1]
+    end
+    Enmap(read(hdu), wcs)
+end
