@@ -33,6 +33,8 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ""
       - run: sudo apt-get install --no-install-recommends gfortran python3-setuptools python3-wheel && pip3 install pixell
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
