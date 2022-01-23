@@ -176,14 +176,14 @@ function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
     new_wcs
 end
 
-function resolve_polcconv!(data::AbstractArray, header::FITSIO.FITSHeader; verbose=true)
+function resolve_polcconv!(data::A, header::FITSIO.FITSHeader; verbose=true) where {A<:AbstractArray}
     naxis = header["NAXIS"]
     for i in 1:naxis
         if getkey(header, "CTYPE$i", "") == "STOKES"
             signs_size = ones(Int, header["NAXIS"])
             signs_size[i] = 3
             verbose && (println("convert to IAU: flip U in axis $i"))
-            signs = ones(Int, signs_size...)
+            signs = ones(eltype(A), signs_size...)
             signs[signs_size] .= -1
             data .*= signs
         end
@@ -191,7 +191,7 @@ function resolve_polcconv!(data::AbstractArray, header::FITSIO.FITSHeader; verbo
 end
 
 # read fits file into Enmap: a simple start
-function read_map(path::String; hdu::Int=1, wcs=nothing)
+function read_map(path::String; hdu::Int=1, wcs::Union{WCSTransform,Nothing}=nothing, verbose=true)
     f = FITS(path, "r")
     data = read(f[hdu])
     if isnothing(wcs)
@@ -200,9 +200,9 @@ function read_map(path::String; hdu::Int=1, wcs=nothing)
         # handle IAU <--> COSMOS conversion
         if "STOKES" in header.values
             # default to IAU
-            !haskey(header, "POLCCONV") && (println("STOKES found but POLCCONV not found, assuming IAU"))
+            verbose && !haskey(header, "POLCCONV") && (println("STOKES found but POLCCONV not found, assuming IAU"))
             polcconv = getkey(header, "POLCCONV", "IAU")
-            polcconv == "IAU" && (resolve_polcconv!(data, header))
+            polcconv == "IAU" && (resolve_polcconv!(data, header; verbose=verbose))
         end
         # WCS.from_header expects each key to be right-padded with len=80
         header_str = join([@sprintf("%-80s", f) for f in split(string(header), "\n")])
