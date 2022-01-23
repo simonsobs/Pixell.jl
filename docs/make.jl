@@ -6,11 +6,11 @@ DocMeta.setdocmeta!(Pixell, :DocTestSetup, :(using Pixell); recursive=true)
 makedocs(;
     modules=[Pixell],
     authors="Zack Li, Yilun Guan",
-    repo="https://github.com/xzackli/Pixell.jl/blob/{commit}{path}#{line}",
+    repo="https://github.com/simonsobs/Pixell.jl/blob/{commit}{path}#{line}",
     sitename="Pixell.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://xzackli.github.io/Pixell.jl",
+        canonical="https://simonsobs.github.io/Pixell.jl",
         assets=String[],
     ),
     pages=[
@@ -19,6 +19,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/xzackli/Pixell.jl",
+    repo="github.com/simonsobs/Pixell.jl",
     devbranch="main",
 )
