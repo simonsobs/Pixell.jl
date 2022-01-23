@@ -4,7 +4,7 @@ CurrentModule = Pixell
 
 # Pixell
 
-Documentation for [Pixell](https://github.com/xzackli/Pixell.jl).
+Documentation for [Pixell](https://github.com/simonsobs/Pixell.jl).
 
 ```@index
 ```
