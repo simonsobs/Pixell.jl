@@ -154,13 +154,33 @@ function Base.copy(bc::Broadcast.Broadcasted{<:EnmapStyle{S}}) where {S}
 end
 
 
+function Base.show(io::IO, imap::Enmap)
+    expr = "Enmap(shape=$(size(imap)),wcs=$(imap.wcs))"
+    print(io, expr)
+end
+
+# This should move to WCS.jl at some point
+function Base.show(io::IO, wcs::WCS.WCSTransform)
+    expr = join(["$k=$(getproperty(wcs, Symbol(k)))"
+                 for k in ["naxis","cdelt","crval","crpix"]], ",")
+    print(io, "WCSTransform($expr)")
+end
+
+# Select the first n axes, should move to WCS.jl at some point
+function sub(wcs::WCS.WCSTransform, n::Int)
+    new_wcs = copy(wcs)
+    naxis = min(n, wcs[:naxis])
+    # magically, all naxis fields are truncated after this
+    setfield!(new_wcs, :naxis, Int32(naxis))
+    new_wcs
+end
+
 # read fits file into Enmap: a simple start
-function read_map(path; hduindex=1, wcs=nothing)
+function read_map(path; hdu=1, wcs=nothing)
     f = FITS(path, "r")
-    hdu = f[hduindex]
     if isnothing(wcs)
-        header = read_header(hdu, String)
-        wcs = WCS.from_header(header)[1]
+        header = read_header(f[hdu], String)
+        wcs = sub(WCS.from_header(header)[1],2)
     end
-    Enmap(read(hdu), wcs)
+    Enmap(read(f[hdu]), wcs)
 end
