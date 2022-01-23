@@ -167,20 +167,21 @@ function Base.show(io::IO, wcs::WCS.WCSTransform)
 end
 
 # Select the first n axes, should move to WCS.jl at some point
-function sub(wcs::WCS.WCSTransform, n::Int)
-    new_wcs = copy(wcs)
-    naxis = min(n, wcs[:naxis])
-    # magically, all naxis fields are truncated after this
-    setfield!(new_wcs, :naxis, Int32(naxis))
+function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
+    new_wcs = inplace ? wcs : copy(wcs)
+    # all naxis fields will be truncated after changing naxis, as
+    # WCS.getproperty refs naxis. Note that wcs.naxis = 2 doesn't work
+    # because it isn't implemented in WCS.setproperty!.
+    setfield!(new_wcs, :naxis, Int32(min(n, wcs.naxis)))
     new_wcs
 end
 
 # read fits file into Enmap: a simple start
-function read_map(path; hdu=1, wcs=nothing)
+function read_map(path::String; hdu::Int=1, wcs=nothing)
     f = FITS(path, "r")
     if isnothing(wcs)
         header = read_header(f[hdu], String)
-        wcs = sub(WCS.from_header(header)[1],2)
+        wcs = sub(WCS.from_header(header)[1], 2)
     end
     Enmap(read(f[hdu]), wcs)
 end
