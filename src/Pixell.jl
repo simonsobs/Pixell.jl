@@ -6,4 +6,6 @@ using FFTW
 
 include("enmap.jl")
 
+export Enmap
+
 end
