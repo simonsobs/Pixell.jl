@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FITSIO = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 WCS = "15f3aee2-9e10-537f-b834-a6fb8bdb944d"
 
 [compat]
