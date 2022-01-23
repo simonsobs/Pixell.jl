@@ -30,7 +30,7 @@ end
 Base.parent(x::Enmap) = x.data
 getwcs(x::Enmap) = x.wcs
 
-# forward all array traits to parent. based on MetaArrays.jl
+# forward all array traits to parent. based on MetaArrays
 Base.size(x::Enmap) = size(parent(x))
 Base.axes(x::Enmap) = Base.axes(parent(x))
 Base.IndexStyle(x::Enmap) = IndexStyle(parent(x))
@@ -56,3 +56,5 @@ function enmapwrap(x::Enmap{T,N,AA,P},val::AAV) where {T,N,AA,P,NV,AAV<:Abstract
 end
 # enmapwrap(x::Enmap, val) = error("Unexpected result type $(typeof(val)).")
 
+Base.strides(x::Enmap) = strides(parent(x))
+Base.stride(x::Enmap, i::Int) = stride(parent(x), i)
