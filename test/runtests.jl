@@ -16,3 +16,14 @@ using Test
     shape, wcs = fullsky_geometry(deg2rad(5); dims=(3,))
     @test shape == (72, 37, 3)
 end
+
+
+@testset "Enmap broadcasting" begin
+    shape, wcs = fullsky_geometry(deg2rad(1); dims=(3,))
+    A, B = rand(shape...), rand(shape...)
+    ma = Enmap(A, wcs)
+    mb = Enmap(B, wcs)
+    @test A .+ B == ma .+ mb
+    @test A .+ B == ma .+ B
+    @test A .+ B .* sin.(A.^2) == (ma .+ mb .* sin.(ma.^2))
+end

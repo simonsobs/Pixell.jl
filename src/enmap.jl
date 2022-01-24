@@ -88,7 +88,7 @@ struct NoWCS end
 combine(x::NoWCS, y) = y
 combine(x, y::NoWCS) = x
 combine(x::NoWCS, ::NoWCS) = x
-combine(x::Enmap, y::Enmap) = x  # TODO: check compatibility
+combine(x::WCSTransform, y::WCSTransform) = x  # TODO: check compatibility
 
 
 ####
