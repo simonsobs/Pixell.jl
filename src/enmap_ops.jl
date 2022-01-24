@@ -47,3 +47,40 @@ fullsky_geometry(proj::Type{<:CarClenshawCurtis}, res::Number; shape = nothing, 
 
 fullsky_geometry(res; shape = nothing, dims = ()) =
     fullsky_geometry(CarClenshawCurtis, res; shape = shape, dims = dims)
+
+
+"""
+    pix_to_world(m::Enmap, pixcoords; indexing=1)
+
+# Arguments:
+- `m::Enmap`: the map to obtain the coordinates from
+- `pixcoords`: pixcoords should be a 2-d array where "pixcoords[:, i]" is the i-th set of coordinates, 
+    or a 1-d array representing a single set of coordinates. 
+
+# Keywords
+- `indexing=1`: set if origin pixel is [0,0] for 0-indexing like pixell or [1,1] for 1-indexing
+
+# Returns: 
+- `Array`: same shape as pixcoords
+
+# Examples
+```julia-repl
+julia> shape, wcs = fullsky_geometry(deg2rad(1))
+       m = Enmap(rand(shape...), wcs)
+julia> pix_to_world(m, [1.0, 1.0])  # 1-indexing
+2-element Vector{Float64}:
+ 180.0
+ -90.0
+julia> pix_to_world(m, [0.0, 0.0]; indexing=0)  # like pixell
+2-element Vector{Float64}:
+ 180.0
+ -90.0
+```
+"""
+function WCS.pix_to_world(m::Enmap, pixcoords; indexing=1)
+    if indexing == 0
+        pixcoords = pixcoords .+ 1
+    end
+    pix_to_world(getwcs(m), pixcoords)
+end
+
