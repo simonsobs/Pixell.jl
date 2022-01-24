@@ -1,5 +1,5 @@
 
-function fullsky_geometry(proj::Type{<:CarProjection}, res; shape = nothing, dims = ())
+function fullsky_geometry(proj::Type{<:CarClenshawCurtis}, res; shape = nothing, dims = ())
     if isnothing(shape)
         shape = (round.(Int, (2π, π) ./ res .+ (0, 1)))  # CAR has pixels on poles
     end
@@ -20,8 +20,8 @@ function fullsky_geometry(proj::Type{<:CarProjection}, res; shape = nothing, dim
     return (nx, ny, dims...), wcs
 end
 
-fullsky_geometry(proj::Type{<:CarProjection}, res::Number; shape = nothing, dims = ()) =
+fullsky_geometry(proj::Type{<:CarClenshawCurtis}, res::Number; shape = nothing, dims = ()) =
     fullsky_geometry(proj, (res, res); shape = shape, dims = dims)
 
 fullsky_geometry(res; shape = nothing, dims = ()) =
-    fullsky_geometry(CarProjection, res; shape = shape, dims = dims)
+    fullsky_geometry(CarClenshawCurtis, res; shape = shape, dims = dims)

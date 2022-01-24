@@ -2,9 +2,10 @@ using Base: ViewIndex, @propagate_inbounds, AbstractCartesianIndex
 
 abstract type AbstractMapProjection end
 abstract type EquiCylProjection <: AbstractMapProjection end  # equidistant cylindrical projection
+abstract type CarProjection <: EquiCylProjection end          # plate carrée
 
-struct CarProjection <: EquiCylProjection end  # plate carrée
-struct CeaProjection <: EquiCylProjection end  # cylindrical equal area
+struct CarClenshawCurtis <: CarProjection end      # plate carrée with pixels on poles and equator
+
 
 """
 Map type, contains an AbstractArray and a WCS object, but behaves like the
@@ -22,9 +23,9 @@ end
 function Enmap(data::A, wcs, ::Type{PT}) where {A<:AbstractArray,PT}
     Enmap{eltype(A),ndims(A),A,PT}(data, wcs)
 end
-# create CAR maps by default
+# create CAR (Clenshaw-Curtis variant) maps by default
 function Enmap(data::A, wcs) where {A<:AbstractArray}
-    Enmap{eltype(A),ndims(A),A,CarProjection}(data, wcs)
+    Enmap{eltype(A),ndims(A),A,CarClenshawCurtis}(data, wcs)
 end
 
 Base.parent(x::Enmap) = x.data
