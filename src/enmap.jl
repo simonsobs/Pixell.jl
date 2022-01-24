@@ -1,7 +1,7 @@
 using Base: ViewIndex, @propagate_inbounds, AbstractCartesianIndex
 
-abstract type MapProjection end
-abstract type EquiCylProjection <: MapProjection end  # equidistant cylindrical projection
+abstract type AbstractMapProjection end
+abstract type EquiCylProjection <: AbstractMapProjection end  # equidistant cylindrical projection
 
 struct CarProjection <: EquiCylProjection end  # plate carrée
 struct CeaProjection <: EquiCylProjection end  # cylindrical equal area
@@ -13,7 +13,7 @@ It only implements the subset of Base.Array operations which are common on maps.
 You should work with the data directly using `enmap_instance.data` if you need
 additional Array functions.
 """
-struct Enmap{T,N,AA<:AbstractArray,P<:MapProjection} <: AbstractArray{T,N}
+struct Enmap{T,N,AA<:AbstractArray,P<:AbstractMapProjection} <: AbstractArray{T,N}
     data::AA  # some kind of abstract array
     wcs::WCSTransform  # WCS object from WCS.jl
 end

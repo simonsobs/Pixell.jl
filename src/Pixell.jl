@@ -6,7 +6,9 @@ using FFTW
 using Printf
 
 include("enmap.jl")
+include("enmap_ops.jl")
 
-export Enmap
+export Enmap, CarProjection
+export fullsky_geometry
 
 end
