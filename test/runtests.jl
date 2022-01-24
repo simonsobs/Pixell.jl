@@ -25,5 +25,6 @@ end
     mb = Enmap(B, wcs)
     @test A .+ B == ma .+ mb
     @test A .+ B == ma .+ B
+    @test A .+ B == A .+ mb
     @test A .+ B .* sin.(A.^2) == (ma .+ mb .* sin.(ma.^2))
 end
