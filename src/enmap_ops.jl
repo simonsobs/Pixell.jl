@@ -50,7 +50,7 @@ fullsky_geometry(res; shape = nothing, dims = ()) =
 
 
 """
-    pix_to_world(m::Enmap, pixcoords; indexing=1)
+    pix2sky(m::Enmap, pixcoords; indexing=1)
 
 # Arguments:
 - `m::Enmap`: the map to obtain the coordinates from
@@ -77,7 +77,7 @@ julia> pix_to_world(m, [0.0, 0.0]; indexing=0)  # like pixell
  -90.0
 ```
 """
-function WCS.pix_to_world(m::Enmap, pixcoords; indexing=1)
+function pix2sky(m::Enmap, pixcoords; indexing=1)
     if indexing == 0
         pixcoords = pixcoords .+ 1
     end
