@@ -10,5 +10,6 @@ include("enmap_ops.jl")
 
 export Enmap, CarClenshawCurtis
 export fullsky_geometry
+export read_map
 
 end

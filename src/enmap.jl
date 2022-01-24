@@ -160,13 +160,6 @@ function Base.show(io::IO, imap::Enmap)
     print(io, expr)
 end
 
-# This should move to WCS.jl at some point
-function Base.show(io::IO, wcs::WCS.WCSTransform)
-    expr = join(["$k=$(getproperty(wcs, Symbol(k)))"
-                 for k in ["naxis","cdelt","crval","crpix"]], ",")
-    print(io, "WCSTransform($expr)")
-end
-
 # Select the first n axes, should move to WCS.jl at some point
 function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
     new_wcs = inplace ? wcs : copy(wcs)
@@ -200,9 +193,9 @@ function read_map(path::String; hdu::Int=1, wcs::Union{WCSTransform,Nothing}=not
         header = read_header(f[hdu])
         # handle IAU <--> COSMOS conversion
         if "STOKES" in header.values
-            # default to IAU
+            # default to no flipping (COSMO)
             verbose && !haskey(header, "POLCCONV") && (println("STOKES found but POLCCONV not found, assuming IAU"))
-            polcconv = getkey(header, "POLCCONV", "IAU")
+            polcconv = getkey(header, "POLCCONV", "COSMO")
             polcconv == "IAU" && (resolve_polcconv!(data, header; verbose=verbose))
         end
         # WCS.from_header expects each key to be right-padded with len=80
