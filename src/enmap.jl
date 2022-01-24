@@ -152,3 +152,61 @@ function Base.copy(bc::Broadcast.Broadcasted{<:EnmapStyle{S}}) where {S}
     bc_ = Broadcast.Broadcasted{S}(bc.f, args_, bc.axes)
     Enmap(copy(bc_), bc.args[1][1])
 end
+
+
+function Base.show(io::IO, imap::Enmap)
+    expr = "Enmap(shape=$(size(imap)),wcs=$(imap.wcs))"
+    print(io, expr)
+end
+
+# This should move to WCS.jl at some point
+function Base.show(io::IO, wcs::WCS.WCSTransform)
+    expr = join(["$k=$(getproperty(wcs, Symbol(k)))"
+                 for k in ["naxis","cdelt","crval","crpix"]], ",")
+    print(io, "WCSTransform($expr)")
+end
+
+# Select the first n axes, should move to WCS.jl at some point
+function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
+    new_wcs = inplace ? wcs : copy(wcs)
+    # all naxis fields will be truncated after changing naxis, as
+    # WCS.getproperty refs naxis. Note that wcs.naxis = 2 doesn't work
+    # because it isn't implemented in WCS.setproperty!.
+    setfield!(new_wcs, :naxis, Int32(min(n, wcs.naxis)))
+    new_wcs
+end
+
+function resolve_polcconv!(data::A, header::FITSIO.FITSHeader; verbose=true) where {A<:AbstractArray}
+    naxis = header["NAXIS"]
+    for i in 1:naxis
+        if getkey(header, "CTYPE$i", "") == "STOKES"
+            signs_size = ones(Int, header["NAXIS"])
+            signs_size[i] = 3
+            verbose && (println("convert to IAU: flip U in axis $i"))
+            signs = ones(eltype(A), signs_size...)
+            signs[signs_size] .= -1
+            data .*= signs
+        end
+    end
+end
+
+# read fits file into Enmap: a simple start
+function read_map(path::String; hdu::Int=1, wcs::Union{WCSTransform,Nothing}=nothing, verbose=true)
+    f = FITS(path, "r")
+    data = read(f[hdu])
+    if isnothing(wcs)
+        # parse header from hdu as FITSIO.FITSHeader
+        header = read_header(f[hdu])
+        # handle IAU <--> COSMOS conversion
+        if "STOKES" in header.values
+            # default to IAU
+            verbose && !haskey(header, "POLCCONV") && (println("STOKES found but POLCCONV not found, assuming IAU"))
+            polcconv = getkey(header, "POLCCONV", "IAU")
+            polcconv == "IAU" && (resolve_polcconv!(data, header; verbose=verbose))
+        end
+        # WCS.from_header expects each key to be right-padded with len=80
+        header_str = join([@sprintf("%-80s", f) for f in split(string(header), "\n")])
+        wcs = sub(WCS.from_header(header_str)[1], 2)
+    end
+    Enmap(data, wcs)
+end
