@@ -170,8 +170,9 @@ function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
     new_wcs
 end
 
-function resolve_polcconv!(data::A, header::FITSIO.FITSHeader; verbose=true) where {A<:AbstractArray}
+function resolve_polcconv!(data::A, header::FITSIO.FITSHeader, sel; verbose=true) where {A<:AbstractArray}
     naxis = header["NAXIS"]
+    has_sel = length(sel) == naxis
     for i in 1:naxis
         if getkey(header, "CTYPE$i", "") == "STOKES"
             signs_size = ones(Int, header["NAXIS"])
@@ -179,15 +180,19 @@ function resolve_polcconv!(data::A, header::FITSIO.FITSHeader; verbose=true) whe
             verbose && (println("convert to IAU: flip U in axis $i"))
             signs = ones(eltype(A), signs_size...)
             signs[signs_size] .= -1
-            data .*= signs
+            if has_sel
+                data .*= selectdim(signs, i, sel[i])
+            else
+                data .*= signs
+            end
         end
     end
 end
 
-# read fits file into Enmap: a simple start
-function read_map(path::String; hdu::Int=1, wcs::Union{WCSTransform,Nothing}=nothing, verbose=true)
+# read fits file into Enmap
+function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Nothing}=nothing, verbose=true)
     f = FITS(path, "r")
-    data = read(f[hdu])
+    data = read(f[hdu], sel...)
     if isnothing(wcs)
         # parse header from hdu as FITSIO.FITSHeader
         header = read_header(f[hdu])
@@ -196,7 +201,7 @@ function read_map(path::String; hdu::Int=1, wcs::Union{WCSTransform,Nothing}=not
             # default to no flipping (COSMO)
             verbose && !haskey(header, "POLCCONV") && (println("STOKES found but POLCCONV not found, assuming IAU"))
             polcconv = getkey(header, "POLCCONV", "COSMO")
-            polcconv == "IAU" && (resolve_polcconv!(data, header; verbose=verbose))
+            polcconv == "IAU" && (resolve_polcconv!(data, header, sel; verbose=verbose))
         end
         # WCS.from_header expects each key to be right-padded with len=80
         header_str = join([@sprintf("%-80s", f) for f in split(string(header), "\n")])
