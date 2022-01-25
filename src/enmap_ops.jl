@@ -67,7 +67,7 @@ but usually are in units of degrees.
 ```julia-repl
 julia> shape, wcs = fullsky_geometry(deg2rad(1))
        m = Enmap(rand(shape...), wcs)
-julia> pix_to_world(m, [1.0, 1.0])  # 1-indexing
+julia> pix2sky(m, [1.0, 1.0])
 2-element Vector{Float64}:
  180.0
  -90.0
@@ -75,28 +75,11 @@ julia> pix_to_world(m, [1.0, 1.0])  # 1-indexing
 """
 function pix2sky end 
 
-# The default fallback is to call WCS, which calls the C library.
+# The default fallback (no projection specified) is to call WCS, which calls the C library.
 # If you wanted to replicate Pixell behavior, add 1 to x and y of pixcoords.
 pix2sky(m::Enmap, pixcoords) = pix_to_world(getwcs(m), pixcoords)
 pix2sky!(m::Enmap, pixcoords, skycoords) = pix_to_world!(getwcs(m), pixcoords, skycoords)
 
-# custom Julia-only implementation for one coordinate
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 pixcoords::Base.AbstractVecOrTuple) where {T,N,AA<:AbstractArray{T,N}}
-    
-    # retrieve WCS info
-    w = getwcs(m)
-    α₀, δ₀ = crval(w)
-    iα₀, iδ₀ = crpix(w)
-    Δα, Δδ = cdelt(w)
-
-    # compute RA (α) and DEC (δ)
-    iα, iδ = pixcoords
-    α = α₀ + (iα - iα₀) * Δα
-    δ = δ₀ + (iδ - iδ₀) * Δδ
-
-    return α, δ
-end
 
 function pix2sky!(m::Enmap{T,N,AA,CarClenshawCurtis}, 
                  pixcoords::AbstractArray{Tp,2}, skycoords::AbstractArray{Tp,2}
@@ -127,6 +110,32 @@ function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis},
     return pix2sky!(m, pixcoords, skycoords)
 end
 
+
+"""
+    sky2pix(m::Enmap, skycoords)
+
+Convert sky coordinates to 1-indexed pixels. The input sky coordinates are determined by WCS,
+but usually are in units of degrees. 
+
+# Arguments:
+- `m::Enmap`: the map to obtain the coordinates from
+- `skycoords`: skycoords should be a 2-d array where "skycoords[:, i]" is the i-th set of coordinates, 
+    or a 1-d array representing a single set of coordinates. 
+
+# Returns: 
+- `Array`: same shape as skycoords
+
+# Examples
+```julia-repl
+julia> shape, wcs = fullsky_geometry(deg2rad(1))
+       m = Enmap(rand(shape...), wcs)
+julia> sky2pix(m, [30.0, 50.0])
+2-element Vector{Float64}:
+ 151.0
+ 141.0
+```
+"""
+function sky2pix end 
 
 sky2pix(m::Enmap, skycoords) = world_to_pix(getwcs(m), skycoords)
 sky2pix!(m::Enmap, skycoords, pixcoords) = world_to_pix!(getwcs(m), skycoords, pixcoords)

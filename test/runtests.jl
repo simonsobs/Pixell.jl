@@ -34,11 +34,12 @@ end
     shape, wcs = fullsky_geometry(deg2rad(1))
     m = Enmap(rand(shape...), wcs)
     @test [180., -90.] ≈ pix2sky(m, [1.0, 1.0])
-    @test pixcoords ≈ sky2pix(m, pix2sky(m, [1.0, 0.0]))
+    @test [1.0, 0.0] ≈ sky2pix(m, pix2sky(m, [1.0, 0.0]))
+    @test [13., 7.] ≈ sky2pix(m, pix2sky(m, [13., 7.]))
 end
 
 ## 
-@testset "nonallocating WCS loading" begin
+@testset "nonallocating WCS info utilities" begin
     shape, wcs = fullsky_geometry(deg2rad(1))
     @test all(Pixell.crpix(wcs) .== wcs.crpix)
     @test all(Pixell.crval(wcs) .== wcs.crval)
