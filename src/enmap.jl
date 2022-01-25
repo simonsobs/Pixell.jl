@@ -160,13 +160,6 @@ function Base.show(io::IO, imap::Enmap)
     print(io, expr)
 end
 
-# This should move to WCS.jl at some point
-function Base.show(io::IO, wcs::WCS.WCSTransform)
-    expr = join(["$k=$(getproperty(wcs, Symbol(k)))"
-                 for k in ["naxis","cdelt","crval","crpix"]], ",")
-    print(io, "WCSTransform($expr)")
-end
-
 # Select the first n axes, should move to WCS.jl at some point
 function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
     new_wcs = inplace ? wcs : copy(wcs)
@@ -177,8 +170,9 @@ function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
     new_wcs
 end
 
-function resolve_polcconv!(data::A, header::FITSIO.FITSHeader; verbose=true) where {A<:AbstractArray}
+function resolve_polcconv!(data::A, header::FITSIO.FITSHeader, sel; verbose=true) where {A<:AbstractArray}
     naxis = header["NAXIS"]
+    has_sel = length(sel) == naxis
     for i in 1:naxis
         if getkey(header, "CTYPE$i", "") == "STOKES"
             signs_size = ones(Int, header["NAXIS"])
@@ -186,28 +180,46 @@ function resolve_polcconv!(data::A, header::FITSIO.FITSHeader; verbose=true) whe
             verbose && (println("convert to IAU: flip U in axis $i"))
             signs = ones(eltype(A), signs_size...)
             signs[signs_size] .= -1
-            data .*= signs
+            if has_sel
+                data .*= selectdim(signs, i, sel[i])
+            else
+                data .*= signs
+            end
         end
     end
 end
 
-# read fits file into Enmap: a simple start
-function read_map(path::String; hdu::Int=1, wcs::Union{WCSTransform,Nothing}=nothing, verbose=true)
+# read fits file into Enmap
+function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Nothing}=nothing, verbose=true)
     f = FITS(path, "r")
-    data = read(f[hdu])
+    data = read(f[hdu], sel...)
     if isnothing(wcs)
         # parse header from hdu as FITSIO.FITSHeader
         header = read_header(f[hdu])
         # handle IAU <--> COSMOS conversion
         if "STOKES" in header.values
-            # default to IAU
+            # default to no flipping (COSMO)
             verbose && !haskey(header, "POLCCONV") && (println("STOKES found but POLCCONV not found, assuming IAU"))
-            polcconv = getkey(header, "POLCCONV", "IAU")
-            polcconv == "IAU" && (resolve_polcconv!(data, header; verbose=verbose))
+            polcconv = getkey(header, "POLCCONV", "COSMO")
+            polcconv == "IAU" && (resolve_polcconv!(data, header, sel; verbose=verbose))
         end
         # WCS.from_header expects each key to be right-padded with len=80
         header_str = join([@sprintf("%-80s", f) for f in split(string(header), "\n")])
         wcs = sub(WCS.from_header(header_str)[1], 2)
     end
     Enmap(data, wcs)
+end
+
+function write_map(fname::String, emap::Enmap)
+    f = FITS(fname, "w")
+    # it is important to write data first. The data will be written with
+    # some default headers that describe the shape for us. We then update
+    # header based on wcs information to populate the rest of the cards
+    write(f, emap.data)
+    header = WCS.to_header(getwcs(emap))
+    cards = [header[1+(i-1)*80:i*80] for i = 1:round(Int, length(header)/80)]
+    for c in cards
+        FITSIO.CFITSIO.fits_write_record(f.fitsfile, c)
+    end
+    close(f)
 end
