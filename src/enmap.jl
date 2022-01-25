@@ -209,3 +209,17 @@ function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Noth
     end
     Enmap(data, wcs)
 end
+
+function write_map(fname::String, emap::Enmap)
+    f = FITS(fname, "w")
+    # it is important to write data first. The data will be written with
+    # some default headers that describe the shape for us. We then update
+    # header based on wcs information to populate the rest of the cards
+    write(f, emap.data)
+    header = WCS.to_header(getwcs(emap))
+    cards = [header[1+(i-1)*80:i*80] for i = 1:round(Int, length(header)/80)]
+    for c in cards
+        FITSIO.CFITSIO.fits_write_record(f.fitsfile, c)
+    end
+    close(f)
+end
