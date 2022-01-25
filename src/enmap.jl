@@ -31,6 +31,15 @@ end
 Base.parent(x::Enmap) = x.data
 getwcs(x::Enmap) = x.wcs
 
+# retrieve nonallocating WCS information. returns tuples of cdelt, crval, crpix
+cdelt(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :cdelt), 1), 
+    unsafe_load(WCS.getfield(wcs, :cdelt), 2)
+crval(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :crval), 1), 
+    unsafe_load(WCS.getfield(wcs, :crval), 2)
+crpix(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :crpix), 1), 
+    unsafe_load(WCS.getfield(wcs, :crpix), 2)
+
+
 # forward all array traits to parent. based on MetaArrays
 Base.size(x::Enmap) = size(parent(x))
 Base.axes(x::Enmap) = Base.axes(parent(x))

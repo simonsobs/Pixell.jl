@@ -10,6 +10,6 @@ include("enmap_ops.jl")
 
 export Enmap, CarClenshawCurtis
 export fullsky_geometry
-export pix2sky
+export pix2sky, sky2pix
 
 end

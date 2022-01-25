@@ -17,7 +17,7 @@ using Test
     @test shape == (72, 37, 3)
 end
 
-
+##
 @testset "Enmap broadcasting" begin
     shape, wcs = fullsky_geometry(deg2rad(1); dims=(3,))
     A, B = rand(shape...), rand(shape...)
@@ -27,4 +27,20 @@ end
     @test A .+ B == ma .+ B
     @test A .+ B == A .+ mb
     @test A .+ B .* sin.(A.^2) == (ma .+ mb .* sin.(ma.^2))
+end
+
+##
+@testset "Enmap sky2pix and pix2sky" begin
+    shape, wcs = fullsky_geometry(deg2rad(1))
+    m = Enmap(rand(shape...), wcs)
+    @test [180., -90.] ≈ pix2sky(m, [1.0, 1.0])
+    @test pixcoords ≈ sky2pix(m, pix2sky(m, [1.0, 0.0]))
+end
+
+## 
+@testset "nonallocating WCS loading" begin
+    shape, wcs = fullsky_geometry(deg2rad(1))
+    @test all(Pixell.crpix(wcs) .== wcs.crpix)
+    @test all(Pixell.crval(wcs) .== wcs.crval)
+    @test all(Pixell.cdelt(wcs) .== wcs.cdelt)
 end
