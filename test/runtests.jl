@@ -33,9 +33,24 @@ end
 @testset "Enmap sky2pix and pix2sky" begin
     shape, wcs = fullsky_geometry(deg2rad(1))
     m = Enmap(rand(shape...), wcs)
-    @test [180., -90.] ≈ pix2sky(m, [1.0, 1.0])
-    @test [1.0, 0.0] ≈ sky2pix(m, pix2sky(m, [1.0, 0.0]))
-    @test [13., 7.] ≈ sky2pix(m, pix2sky(m, [13., 7.]))
+    @test [180., -90.] ≈ collect(pix2sky(m, [1.0, 1.0]))
+    @test [1.0, 0.0] ≈ collect(sky2pix(m, pix2sky(m, [1.0, 0.0])))
+    @test [13., 7.] ≈ collect(sky2pix(m, pix2sky(m, [13., 7.])))
+
+    # check that our custom implementations 
+    pixcoords = 100 .* rand(2, 1024)
+    skycoords = pix2sky(m, pixcoords)
+    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords)
+    skycoords .= 0.0
+    pix2sky!(m, pixcoords, skycoords)
+    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords)
+    
+    skycoords = 100 .* rand(2, 1024)
+    pixcoords = sky2pix(m, skycoords)
+    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords)
+    pixcoords .= 0.0
+    sky2pix!(m, skycoords, pixcoords)
+    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords)
 end
 
 ## 
