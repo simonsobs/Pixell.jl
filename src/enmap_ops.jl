@@ -2,6 +2,8 @@
 """
     fullsky_geometry([P=CarClenshawCurtis], res; shape = nothing, dims = ())
 
+Generates a full-sky geometry.
+
 # Arguments:
 - `proj=CarClenshawCurtis`: [optional] projection
 - `res`: resolution in radians. Passing a Number produces a square pixel.
@@ -139,20 +141,14 @@ function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, pixcoords::AbstractArray{TP
 end
 
 """
-    pix2sky(m::Enmap, ra_pixel, dec_pixel)
+    pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, ra_pixel, dec_pixel)
 
 Compute the sky position of a single position on the sky.
 
 Only implemented for CAR (Clenshaw-Curtis variant) projections, so
 the input map is of type `Enmap{T,N,AA,CarClenshawCurtis}`.
-
-# Arguments:
-- `m::Enmap{T}`: the map that provides a coordinate system
-- `ra_pixel::Number`: pixel in the dimension of right ascension
-- `dec_pixel::Number`: pixel in the dimension of declination
-
-# Returns: 
-- `Tuple{T,T}`: RA and DEC
+This takes pixel indices for RA and DEC, and returns a tuple containing
+the corresponding RA and DEC.
 
 # Examples
 ```julia-repl
@@ -162,8 +158,8 @@ julia> pix2sky(m, 30.0, 80.0)
 (151.0, -11.0)
 ```
 """
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis},
-    ra_pixel::Number, dec_pixel::Number) where {T,N,AA<:AbstractArray{T,N}}
+function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+                 ra_pixel::Number, dec_pixel::Number) where {T,N,AA<:AbstractArray{T,N}}
     w = getwcs(m)
     α₀, δ₀ = crval(w)
     iα₀, iδ₀ = crpix(w)
@@ -172,10 +168,20 @@ function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis},
     δ = δ₀ + (dec_pixel - iδ₀) * Δδ
     return α, δ
 end
+function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+                 ra_pixel::AV, dec_pixel::AV) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
+    w = getwcs(m)
+    α₀, δ₀ = crval(w)
+    iα₀, iδ₀ = crpix(w)
+    Δα, Δδ = cdelt(w)
+    α = α₀ .+ (ra_pixel .- iα₀) .* Δα
+    δ = δ₀ .+ (dec_pixel .- iδ₀) .* Δδ
+    return α, δ
+end
 
-# when passing a vector, return a vector! wraps the single-coordinate version above
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, pixcoords::AbstractVector
-) where {T,N,AA<:AbstractArray{T,N}}
+# when passing a length-2 vector [ra, dec], return a vector. wraps the pix2sky(m, ra_pix, dec_pix)
+function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+                 pixcoords::AbstractVector) where {T,N,AA<:AbstractArray{T,N}}
     @assert length(pixcoords) == 2
     return collect(pix2sky(m, first(pixcoords), last(pixcoords)))
 end
@@ -216,7 +222,7 @@ determined by WCS, but usually are in units of degrees.
 # Arguments:
 - `m::Enmap`: the map that provides a coordinate system
 - `skycoords`: sky coordinates should be a 2-d array where "skycoords[:, i]" is the i-th 
-set of coordinates, or a 1-d array representing a single set of coordinates. 
+    set of coordinates, or a 1-d array representing a single set of coordinates. 
 - `pixcoords`: output array for pixel coordinates, must be same same as pixcoords
 
 # Returns: 
@@ -231,9 +237,8 @@ julia> shape, wcs = fullsky_geometry(deg2rad(1))
 julia> sky2pix!(m, skycoords, pixcoords)
 ```
 """
-function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis},
-    skycoords::AbstractArray{TS,2}, pixcoords::AbstractArray{TP,2}
-) where {T,N,AA<:AbstractArray{T,N},TS,TP}
+function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{TS,2}, 
+                  pixcoords::AbstractArray{TP,2}) where {T,N,AA<:AbstractArray{T,N},TS,TP}
 
     # retrieve WCS info
     w = getwcs(m)
@@ -256,29 +261,22 @@ function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis},
 end
 
 # the not-in-place version just creates an output array and calls the in-place one above
-function sky2pix(
-    m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{TS,2}
-) where {T,N,AA<:AbstractArray{T,N},TS}
+function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+                 skycoords::AbstractArray{TS,2}) where {T,N,AA<:AbstractArray{T,N},TS}
     pixcoords = similar(skycoords)
     return sky2pix!(m, skycoords, pixcoords)
 end
 
 
 """
-    sky2pix(m::Enmap, ra, dec)
+    sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, ra, dec)
 
 Compute 1-indexed pixels into sky coordinates.
 
-Only implemented for CAR (Clenshaw-Curtis variant) projections, so
-the input map is of type `Enmap{T,N,AA,CarClenshawCurtis}`.
-
-# Arguments:
-- `m::Enmap{T}`: the map that provides a coordinate system
-- `ra::Number`: pixel in the dimension of right ascension
-- `dec::Number`: pixel in the dimension of declination
-
-# Returns: 
-- `Tuple{T,T}`: RA pixel and DEC pixel indices
+Only implemented for CAR (Clenshaw-Curtis variant) projections. Takes 
+RA and DEC and returns a tuple containing the corresponding pixel
+indices. If vectors of RA and DEC are given, then vectors of 
+pixel indices will be returned.
 
 # Examples
 ```julia-repl
@@ -288,9 +286,8 @@ julia> sky2pix(m, 30.0, 80.0)
 (151.0, 171.0)
 ```
 """
-function sky2pix(
-    m::Enmap{T,N,AA,CarClenshawCurtis}, ra::Number, dec::Number
-) where {T,N,AA<:AbstractArray{T,N}}
+function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+                 ra::Number, dec::Number) where {T,N,AA<:AbstractArray{T,N}}
     w = getwcs(m)
     α₀, δ₀ = crval(w)
     iα₀, iδ₀ = crpix(w)
@@ -299,10 +296,21 @@ function sky2pix(
     pix_dec = iδ₀ + (dec - δ₀) / Δδ
     return pix_ra, pix_dec
 end
+function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+                 ra::AV, dec::AV) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
+    w = getwcs(m)
+    α₀, δ₀ = crval(w)
+    iα₀, iδ₀ = crpix(w)
+    Δα, Δδ = cdelt(w)
+    Δα⁻¹, Δδ⁻¹ = 1 / Δα, 1 / Δδ
+    pix_ra = iα₀ .+ (ra .- α₀) .* Δα⁻¹
+    pix_dec = iδ₀ .+ (dec .- δ₀) .* Δδ⁻¹
+    return pix_ra, pix_dec
+end
 
-# when passing a vector, return a vector! wraps the single-coordinate version above
-function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractVector
-) where {T,N,AA<:AbstractArray{T,N}}
+# when passing a vector [ra, dec], return a vector. wraps the sky2pix(m, ra, dec).
+function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
+                 skycoords::AbstractVector) where {T,N,AA<:AbstractArray{T,N}}
     @assert length(skycoords) == 2
     return collect(sky2pix(m, first(skycoords), last(skycoords)))
 end
