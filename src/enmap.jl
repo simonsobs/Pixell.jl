@@ -45,9 +45,18 @@ Base.size(x::Enmap) = size(parent(x))
 Base.axes(x::Enmap) = Base.axes(parent(x))
 Base.IndexStyle(x::Enmap) = IndexStyle(parent(x))
 
-@propagate_inbounds Base.view(A::Enmap, idxs::ViewIndex...) = Enmap(view(parent(A), idxs...), getwcs(A))
-@propagate_inbounds Base.view(A::Enmap, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = Enmap(view(parent(A), idxs...), getwcs(A))
-@propagate_inbounds Base.view(A::Enmap, idxs...) = Enmap(view(parent(A), idxs...), getwcs(A))
+@propagate_inbounds function Base.view(x::Enmap, idxs::ViewIndex...) 
+    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), idxs...)
+    Enmap(view(parent(x), idxs...), new_wcs)
+end
+@propagate_inbounds function Base.view(x::Enmap, idxs::Union{ViewIndex,AbstractCartesianIndex}...) 
+    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), idxs...)
+    Enmap(view(parent(x), idxs...), new_wcs)
+end
+@propagate_inbounds function Base.view(x::Enmap, idxs...) 
+    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), idxs...)
+    Enmap(view(parent(x), idxs...), new_wcs)
+end
 
 @propagate_inbounds Base.getindex(x::Enmap, i::Int...) = getindex(parent(x), i...)
 @propagate_inbounds function Base.getindex(x::Enmap, i...)
