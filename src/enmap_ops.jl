@@ -332,3 +332,4 @@ function slice_geometry(shape_all::NTuple{N}, wcs, sel_all::Vararg) where N
     wcs′.crpix = collect(crpix′)
     return (shape..., other_dims...), wcs′
 end
+slice_geometry(m::Enmap, sel_all::Vararg) = slice_geometry(size(m), getwcs(m), sel_all...)

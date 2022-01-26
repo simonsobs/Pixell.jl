@@ -46,15 +46,15 @@ Base.axes(x::Enmap) = Base.axes(parent(x))
 Base.IndexStyle(x::Enmap) = IndexStyle(parent(x))
 
 @propagate_inbounds function Base.view(x::Enmap, idxs::ViewIndex...) 
-    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), idxs...)
+    new_shape, new_wcs = slice_geometry(x, idxs...)
     Enmap(view(parent(x), idxs...), new_wcs)
 end
 @propagate_inbounds function Base.view(x::Enmap, idxs::Union{ViewIndex,AbstractCartesianIndex}...) 
-    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), idxs...)
+    new_shape, new_wcs = slice_geometry(x, idxs...)
     Enmap(view(parent(x), idxs...), new_wcs)
 end
 @propagate_inbounds function Base.view(x::Enmap, idxs...) 
-    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), idxs...)
+    new_shape, new_wcs = slice_geometry(x, idxs...)
     Enmap(view(parent(x), idxs...), new_wcs)
 end
 
@@ -68,18 +68,18 @@ function Base.similar(x::Enmap, ::Type{S}, dims::NTuple{<:Any,Int}) where {S}
     Enmap(similar(parent(x), S, dims), getwcs(x))
 end
 
-enmapwrap(x::Enmap{T}, val::T) where {T} = val
+enmapwrap(x::Enmap{T}, val::T, i...) where {T} = val
 function enmapwrap(x::Enmap{T,N,AA,P}, val::AbstractArray{T,N}, i...) where {T,N,AA,P} 
-    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), i...)
+    new_shape, new_wcs = slice_geometry(x, i...)
     Enmap{T,N,AA,P}(val, new_wcs)
 end
 
 # if array slicing ends up changing dimension, follow the parent
 function enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}}
-    new_shape, new_wcs = slice_geometry(size(x), getwcs(x), i...)
+    new_shape, new_wcs = slice_geometry(x, i...)
     Enmap{T,NV,AAV,P}(val, new_wcs)
 end
-enmapwrap(x, val) = error("Unexpected result type $(typeof(val)).")
+enmapwrap(x, val, i...) = error("Unexpected result type $(typeof(val)).")
 
 Base.strides(x::Enmap) = strides(parent(x))
 Base.stride(x::Enmap, i::Int) = stride(parent(x), i)

@@ -95,6 +95,66 @@ end
     @test [0.5, 0.0] ≈ wcs.crval
 end
 
+## 
+@testset "Enmap slicing" begin
+    shape0, wcs0 = fullsky_geometry(π/180)
+    m = Enmap(rand(shape0...), wcs0)
+
+    # regular slicing
+    m_sliced = m[5:10, 1:end]
+    wcs = getwcs(m_sliced)
+    @test [-1.0, 1.0] ≈ wcs.cdelt
+    @test [176.5, 91.0] ≈ wcs.crpix
+    @test [0.5, 0.0] ≈ wcs.crval
+    @test (m.data)[5:10, 1:end] ≈ m_sliced
+
+    # backwards slicing
+    m_sliced = m[1:12, end:-1:begin]
+    wcs = getwcs(m_sliced)
+    @test [-1.0, -1.0] ≈ wcs.cdelt
+    @test [180.5, 91.0] ≈ wcs.crpix
+    @test [0.5, 0.0] ≈ wcs.crval
+    @test (m.data)[1:12, end:-1:begin] ≈ m_sliced
+
+    # non-unit steps
+    m_sliced = m[3:5:24, 39:-3:2]
+    wcs = getwcs(m_sliced)
+    @test [-5.0, -3.0] ≈ wcs.cdelt
+    @test [36.1, -16.666666666666668] ≈ wcs.crpix
+    @test [0.5, 0.0] ≈ wcs.crval
+    @test (m.data)[3:5:24, 39:-3:2] ≈ m_sliced
+end
+
+## 
+@testset "Enmap view slicing" begin
+    shape0, wcs0 = fullsky_geometry(π/180)
+    m = Enmap(rand(shape0...), wcs0)
+
+    # regular slicing
+    m_sliced = @view m[5:10, 1:end]
+    wcs = getwcs(m_sliced)
+    @test [-1.0, 1.0] ≈ wcs.cdelt
+    @test [176.5, 91.0] ≈ wcs.crpix
+    @test [0.5, 0.0] ≈ wcs.crval
+    @test (m.data)[5:10, 1:end] ≈ m_sliced
+
+    # backwards slicing
+    m_sliced = @view m[1:12, end:-1:begin]
+    wcs = getwcs(m_sliced)
+    @test [-1.0, -1.0] ≈ wcs.cdelt
+    @test [180.5, 91.0] ≈ wcs.crpix
+    @test [0.5, 0.0] ≈ wcs.crval
+    @test (m.data)[1:12, end:-1:begin] ≈ m_sliced
+
+    # non-unit steps
+    m_sliced = @view m[3:5:24, 39:-3:2]
+    wcs = getwcs(m_sliced)
+    @test [-5.0, -3.0] ≈ wcs.cdelt
+    @test [36.1, -16.666666666666668] ≈ wcs.crpix
+    @test [0.5, 0.0] ≈ wcs.crval
+    @test (m.data)[3:5:24, 39:-3:2] ≈ m_sliced
+end
+
 ##
 @testset "Enmap I/O" begin
     imap = read_map("data/test.fits")
