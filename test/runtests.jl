@@ -155,6 +155,29 @@ end
     @test (m.data)[3:5:24, 39:-3:2] ≈ m_sliced
 end
 
+## WCS should be not be shared under deepcopy, broadcasting, or broadcasted assignment
+@testset "Enmap copying behavior" begin  
+    shape0, wcs0 = fullsky_geometry(π/180)
+    m = Enmap(rand(shape0...), wcs0)
+    m2 = deepcopy(m)
+    @test !(m.wcs === m2.wcs)
+    m2.wcs.cdelt = [99., 99.]
+    @test !(m.wcs.cdelt ≈ [99., 99.])
+
+    m = Enmap(rand(shape0...), wcs0)
+    m2 = m.^2
+    @test !(m.wcs === m2.wcs)
+    m2.wcs.cdelt = [99., 99.]
+    @test !(m.wcs.cdelt ≈ [99., 99.])
+
+    m = Enmap(rand(shape0...), wcs0)
+    m2 = deepcopy(m)
+    m2 .= m
+    @test !(m.wcs === m2.wcs)
+    m2.wcs.cdelt = [99., 99.]  # also make sure sub-arrays aren't shared
+    @test !(m.wcs.cdelt ≈ [99., 99.])
+end
+
 ##
 @testset "Enmap I/O" begin
     imap = read_map("data/test.fits")
