@@ -1,8 +1,8 @@
 module Enplot
 
-using Colors
+using Colors: RGB, weighted_color_mean
 using RecipesBase
-using ColorSchemes: ColorScheme
+using ColorSchemes
 
 import Pixell: Enmap, pix2sky
 
@@ -21,14 +21,16 @@ function build_colorscheme(colors, locs)
 end
 
 # here we define some common color schemes
-colorschemes = Dict{Symbol,ColorScheme}()
-colorschemes[:planck] = build_colorscheme([rgb(0, 0, 255), rgb(0, 215, 255), rgb(255, 237, 217), rgb(255, 180, 0), rgb(255, 75, 0), rgb(100, 0, 0)], [0, 0.332, 0.5, 0.664, 0.828, 1])
+cschemes = Dict{Symbol,ColorScheme}()
+cschemes[:planck] = build_colorscheme([rgb(0, 0, 255), rgb(0, 215, 255), rgb(255, 237, 217), rgb(255, 180, 0), rgb(255, 75, 0), rgb(100, 0, 0)], [0, 0.332, 0.5, 0.664, 0.828, 1])
 
-function register_colorschemes!(cschemes)
-    for (k, v) in colorschemes
-        cschemes[k] = v
+function register_colors!()
+    for (k, v) in cschemes
+        ColorSchemes.colorschemes[k] = v
     end
 end
+
+export register_colors!
 
 # here we define common plot recipes
 @recipe function f(imap::Enmap)
@@ -36,7 +38,7 @@ end
     aspect_ratio := :equal
     xformatter   := x -> pix2sky_formatter(x, imap)
     yformatter   := x -> pix2sky_formatter(x, imap; ind=2)
-    color          --> :planck  # need to call register colorschemes first
+    color          --> :greys
     xlim           --> (1, size(imap.data,1))  # not nice
     ylim           --> (1, size(imap.data,2))
     colorbar       --> false
