@@ -49,8 +49,8 @@ end
 
 # format pixel index with its sky coordinate. ra: ind=1, dec: ind=2
 function pix2sky_formatter(x, imap::Enmap; ind=1, digits=2)
-    res = round(pix2sky(imap, float.([x, x]))[ind], digits=digits)
-    imap.wcs.cunit[1] == "deg" ? string(res)*"°" : res[1]
+    res = round(rad2deg(pix2sky(imap, float.([x, x]))[ind]), digits=digits)
+    string(res)*"°"
 end
 
 end  # module
