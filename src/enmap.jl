@@ -50,7 +50,10 @@ Base.IndexStyle(x::Enmap) = IndexStyle(parent(x))
 @propagate_inbounds Base.view(A::Enmap, idxs...) = Enmap(view(parent(A), idxs...), getwcs(A))
 
 @propagate_inbounds Base.getindex(x::Enmap, i::Int...) = getindex(parent(x), i...)
-@propagate_inbounds Base.getindex(x::Enmap, i...) = enmapwrap(x, getindex(parent(x), i...))
+@propagate_inbounds function Base.getindex(x::Enmap, i...) 
+    print("SLICE\n")
+    enmapwrap(x, getindex(parent(x), i...))
+end
 @propagate_inbounds Base.setindex!(x::Enmap, v, i...) = (setindex!(parent(x), v, i...); x)
 
 function Base.similar(x::Enmap, ::Type{S}, dims::NTuple{<:Any,Int}) where {S}
