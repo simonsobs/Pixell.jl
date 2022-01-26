@@ -80,10 +80,24 @@ function pix2sky end
 ## The default fallback (no projection specified) is to call WCS, which calls the C library.
 ## If you wanted to replicate Pixell behavior, add 1 to x and y of pixcoords.
 ## We implement custom routines for CAR (Clenshaw-Curtis variant) instead of using these.
-pix2sky(m::Enmap, pixcoords) = pix_to_world(getwcs(m), pixcoords)
-pix2sky!(m::Enmap, pixcoords, skycoords) = pix_to_world!(getwcs(m), pixcoords, skycoords)
-sky2pix(m::Enmap, skycoords) = world_to_pix(getwcs(m), skycoords)
-sky2pix!(m::Enmap, skycoords, pixcoords) = world_to_pix!(getwcs(m), skycoords, pixcoords)
+function pix2sky(m::Enmap{T}, pixcoords) where T
+    angle_unit = get_unit(T, w)
+    return pix_to_world(getwcs(m), pixcoords) .* angle_unit
+end
+function pix2sky!(m::Enmap{T}, pixcoords, skycoords) where T
+    angle_unit = get_unit(T, w)
+    pix_to_world!(getwcs(m), pixcoords, skycoords)
+    skycoords .*= angle_unit
+    return skycoords
+end
+function sky2pix(m::Enmap{T}, skycoords) where T
+    inverse_angle_unit = 1 / get_unit(T, w)
+    return world_to_pix(getwcs(m), skycoords .* inverse_angle_unit)
+end
+function sky2pix!(m::Enmap{T}, skycoords, pixcoords) where T
+    inverse_angle_unit = 1 / get_unit(T, w)
+    return world_to_pix!(getwcs(m), skycoords .* inverse_angle_unit, pixcoords)
+end
 
 """
     pix2sky!(m::Enmap, pixcoords, skycoords)
@@ -116,9 +130,10 @@ function pix2sky!(m::Enmap{T,N,AA,CarClenshawCurtis},
 
     # retrieve WCS info
     w = getwcs(m)
-    α₀, δ₀ = crval(w)
+    angle_unit = get_unit(T, w)
+    α₀, δ₀ = crval(w) .* angle_unit
+    Δα, Δδ = cdelt(w) .* angle_unit
     iα₀, iδ₀ = crpix(w)
-    Δα, Δδ = cdelt(w)
 
     # compute RA (α) and DEC (δ)
     @inbounds for ipix ∈ axes(pixcoords, 2)
@@ -161,9 +176,10 @@ julia> pix2sky(m, 30.0, 80.0)
 function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
                  ra_pixel::Number, dec_pixel::Number) where {T,N,AA<:AbstractArray{T,N}}
     w = getwcs(m)
-    α₀, δ₀ = crval(w)
+    angle_unit = get_unit(T, w)
+    α₀, δ₀ = crval(w) .* angle_unit
+    Δα, Δδ = cdelt(w) .* angle_unit
     iα₀, iδ₀ = crpix(w)
-    Δα, Δδ = cdelt(w)
     α = α₀ + (ra_pixel - iα₀) * Δα
     δ = δ₀ + (dec_pixel - iδ₀) * Δδ
     return α, δ
@@ -171,9 +187,10 @@ end
 function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
                  ra_pixel::AV, dec_pixel::AV) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
     w = getwcs(m)
-    α₀, δ₀ = crval(w)
+    angle_unit = get_unit(T, w)
+    α₀, δ₀ = crval(w) .* angle_unit
+    Δα, Δδ = cdelt(w) .* angle_unit
     iα₀, iδ₀ = crpix(w)
-    Δα, Δδ = cdelt(w)
     α = α₀ .+ (ra_pixel .- iα₀) .* Δα
     δ = δ₀ .+ (dec_pixel .- iδ₀) .* Δδ
     return α, δ
@@ -242,9 +259,10 @@ function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{T
 
     # retrieve WCS info
     w = getwcs(m)
-    α₀, δ₀ = crval(w)
+    angle_unit = get_unit(T, w)
+    α₀, δ₀ = crval(w) .* angle_unit
+    Δα, Δδ = cdelt(w) .* angle_unit
     iα₀, iδ₀ = crpix(w)
-    Δα, Δδ = cdelt(w)
     Δα⁻¹, Δδ⁻¹ = 1 / Δα, 1 / Δδ
 
     # compute RA (α) index and DEC (δ) index
@@ -289,9 +307,10 @@ julia> sky2pix(m, 30.0, 80.0)
 function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
                  ra::Number, dec::Number) where {T,N,AA<:AbstractArray{T,N}}
     w = getwcs(m)
-    α₀, δ₀ = crval(w)
+    angle_unit = get_unit(T, w)
+    α₀, δ₀ = crval(w) .* angle_unit
+    Δα, Δδ = cdelt(w) .* angle_unit
     iα₀, iδ₀ = crpix(w)
-    Δα, Δδ = cdelt(w)
     pix_ra = iα₀ + (ra - α₀) / Δα
     pix_dec = iδ₀ + (dec - δ₀) / Δδ
     return pix_ra, pix_dec
@@ -299,9 +318,10 @@ end
 function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
                  ra::AV, dec::AV) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
     w = getwcs(m)
-    α₀, δ₀ = crval(w)
+    angle_unit = get_unit(T, w)
+    α₀, δ₀ = crval(w) .* angle_unit
+    Δα, Δδ = cdelt(w) .* angle_unit
     iα₀, iδ₀ = crpix(w)
-    Δα, Δδ = cdelt(w)
     Δα⁻¹, Δδ⁻¹ = 1 / Δα, 1 / Δδ
     pix_ra = iα₀ .+ (ra .- α₀) .* Δα⁻¹
     pix_dec = iδ₀ .+ (dec .- δ₀) .* Δδ⁻¹

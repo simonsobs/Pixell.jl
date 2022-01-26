@@ -30,27 +30,32 @@ end
 end
 
 ##
+
+wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
 @testset "Enmap sky2pix and pix2sky" begin
     shape, wcs = fullsky_geometry(deg2rad(1))
     m = Enmap(rand(shape...), wcs)
-    @test [180., -90.] ≈ collect(pix2sky(m, [1.0, 1.0]))
+    # in this test, wrap to angles in [0, 2π] and [0, π] for RA and DEC
+    @test [3.12413936, -1.55334303] ≈ collect(pix2sky(m, [2.0, 2.0]))
+    @test [2.96705973, -1.79768913] ≈ collect(pix2sky(m, [11.0, -12.0]))
+    @test [2.44346095, -2.0943951] ≈ collect(pix2sky(m, [41.0, -29.0]))
     @test [1.0, 0.0] ≈ collect(sky2pix(m, pix2sky(m, [1.0, 0.0])))
     @test [13., 7.] ≈ collect(sky2pix(m, pix2sky(m, [13., 7.])))
 
     # check that our custom implementations 
-    pixcoords = 100 .* rand(2, 1024)
+    pixcoords = π .* rand(2, 1024)
     skycoords = pix2sky(m, pixcoords)
-    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords)
+    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords) .* (π/180)
     skycoords .= 0.0
     pix2sky!(m, pixcoords, skycoords)
-    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords)
+    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords) .* (π/180)
     
-    skycoords = 100 .* rand(2, 1024)
+    skycoords = π .* rand(2, 1024)
     pixcoords = sky2pix(m, skycoords)
-    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords)
+    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords .* (180/π))
     pixcoords .= 0.0
     sky2pix!(m, skycoords, pixcoords)
-    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords)
+    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords .* (180/π))
 end
 
 ## 
