@@ -64,25 +64,25 @@ end
 ## 
 @testset "slice_geometry" begin
     shape0, wcs0 = fullsky_geometry(deg2rad(1))
-    shape, wcs = Pixell.slice_geometry(shape0, wcs0, 1:4, 11:-1:2)
+    shape, wcs = slice_geometry(shape0, wcs0, 1:4, 11:-1:2)
     @test (3, 9) == shape
     @test [-1.0, -1.0] ≈ wcs.cdelt
     @test [180.5, -79.0] ≈ wcs.crpix
     @test [0.5, 0.0] ≈ wcs.crval
     
-    shape, wcs = Pixell.slice_geometry(shape0, wcs0, 2:shape0[1], 6:12)
+    shape, wcs = slice_geometry(shape0, wcs0, 2:shape0[1], 6:12)
     @test (358, 6) == shape
     @test [-1.0, 1.0] ≈ wcs.cdelt
     @test [179.5, 86.0] ≈ wcs.crpix
     @test [0.5, 0.0] ≈ wcs.crval
 
-    shape, wcs = Pixell.slice_geometry(shape0, wcs0, 2:2:shape0[1], 1:12)
+    shape, wcs = slice_geometry(shape0, wcs0, 2:2:shape0[1], 1:12)
     @test (179, 11) == shape
     @test [-2.0, 1.0] ≈ wcs.cdelt
     @test [90.0, 91.0] ≈ wcs.crpix
     @test [0.5, 0.0] ≈ wcs.crval
 
-    shape, wcs = Pixell.slice_geometry(shape0, wcs0, 23:-4:3, 1:3:31)
+    shape, wcs = slice_geometry(shape0, wcs0, 23:-4:3, 1:3:31)
     @test (5, 10) == shape
     @test [4.0, 3.0] ≈ wcs.cdelt
     @test [-38.75, 30.666666666666668] ≈ wcs.crpix
