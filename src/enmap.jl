@@ -187,9 +187,29 @@ function Base.copy(bc::Broadcast.Broadcasted{<:EnmapStyle{S}}) where {S}
     Enmap(copy(bc_), copy(bc.args[1][1]))
 end
 
-
 Base.deepcopy(x::Enmap) = Enmap(deepcopy(parent(x)), deepcopy(getwcs(x)))
 
+# internal function for getting the unit of the angles in the WCS header
+# multiply the result of this function with your angle to get radians.
+get_unit(wcs::WCSTransform) = get_unit(Float64, wcs)
+function get_unit(T::Type{<:Real}, wcs::WCSTransform)
+    cunit1, cunit2 = wcs.cunit
+    @assert cunit1 == cunit2 "Units of RA and DEC must be the same."
+    cunit = cunit1
+    if cunit == "deg"
+        return T(π/180)
+    elseif cunit == "rad"
+        return one(T)
+    elseif cunit == "arcmin"
+        return T(π/180/60)
+    elseif cunit == "arcsec"
+        return T(π/180/60/60)
+    elseif cunit == "mas"
+        return T(π/180/60/60/1000)
+    end
+    @warn "Can't recognize the WCS unit: $(cunit). Assuming degrees."
+    return T(π/180)  # give up and return degrees
+end
 
 function Base.show(io::IO, imap::Enmap)
     expr = "Enmap(shape=$(size(imap)),wcs=$(imap.wcs))"
