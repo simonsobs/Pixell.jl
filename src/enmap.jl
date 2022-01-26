@@ -118,10 +118,10 @@ enmapstyle(x::Broadcast.Unknown) = x
 
 
 struct NoWCS end
-combine(x::NoWCS, y) = y
-combine(x, y::NoWCS) = x
+combine(x::NoWCS, y) = copy(y)
+combine(x, y::NoWCS) = copy(x)
 combine(x::NoWCS, ::NoWCS) = x
-combine(x::WCSTransform, y::WCSTransform) = x  # TODO: check compatibility
+combine(x::WCSTransform, y::WCSTransform) = copy(x)  # TODO: check compatibility
 
 
 ####
@@ -184,8 +184,11 @@ function Base.copy(bc::Broadcast.Broadcasted{<:EnmapStyle{S}}) where {S}
     # argument contains the meta data
     args_ = (bc.args[1][2], Base.tail(bc.args)...)
     bc_ = Broadcast.Broadcasted{S}(bc.f, args_, bc.axes)
-    Enmap(copy(bc_), bc.args[1][1])
+    Enmap(copy(bc_), copy(bc.args[1][1]))
 end
+
+
+Base.deepcopy(x::Enmap) = Enmap(deepcopy(parent(x)), deepcopy(getwcs(x)))
 
 
 function Base.show(io::IO, imap::Enmap)
