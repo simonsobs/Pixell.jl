@@ -45,26 +45,50 @@ Base.size(x::Enmap) = size(parent(x))
 Base.axes(x::Enmap) = Base.axes(parent(x))
 Base.IndexStyle(x::Enmap) = IndexStyle(parent(x))
 
-@propagate_inbounds Base.view(A::Enmap, idxs::ViewIndex...) = Enmap(view(parent(A), idxs...), getwcs(A))
-@propagate_inbounds Base.view(A::Enmap, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = Enmap(view(parent(A), idxs...), getwcs(A))
-@propagate_inbounds Base.view(A::Enmap, idxs...) = Enmap(view(parent(A), idxs...), getwcs(A))
+@propagate_inbounds function Base.view(x::Enmap, idxs::ViewIndex...) 
+    new_shape, new_wcs = slice_geometry(x, idxs...)
+    Enmap(view(parent(x), idxs...), new_wcs)
+end
+@propagate_inbounds function Base.view(x::Enmap, idxs::Union{ViewIndex,AbstractCartesianIndex}...) 
+    new_shape, new_wcs = slice_geometry(x, idxs...)
+    Enmap(view(parent(x), idxs...), new_wcs)
+end
+@propagate_inbounds function Base.view(x::Enmap, idxs...) 
+    new_shape, new_wcs = slice_geometry(x, idxs...)
+    Enmap(view(parent(x), idxs...), new_wcs)
+end
 
 @propagate_inbounds Base.getindex(x::Enmap, i::Int...) = getindex(parent(x), i...)
-@propagate_inbounds Base.getindex(x::Enmap, i...) = enmapwrap(x, getindex(parent(x), i...))
+@propagate_inbounds function Base.getindex(x::Enmap, i...)
+    enmapwrap(x, getindex(parent(x), i...), i...)
+end
 @propagate_inbounds Base.setindex!(x::Enmap, v, i...) = (setindex!(parent(x), v, i...); x)
 
 function Base.similar(x::Enmap, ::Type{S}, dims::NTuple{<:Any,Int}) where {S}
-    Enmap(getwcs(x), similar(parent(x), S, dims))
+    Enmap(similar(parent(x), S, dims), getwcs(x))
 end
 
-enmapwrap(x::Enmap{T}, val::T) where {T} = val
-enmapwrap(x::Enmap{T,N,AA,P}, val::AbstractArray{T,N}) where {T,N,AA,P} = Enmap{T,N,AA,P}(val, getwcs(x))
+enmapwrap(x::Enmap{T}, val::T, i...) where {T} = val
+function enmapwrap(x::Enmap{T,N,AA,P}, val::AbstractArray{T,N}, i...) where {T,N,AA,P} 
+    new_shape, new_wcs = slice_geometry(x, i...)
+    Enmap{T,N,AA,P}(val, new_wcs)
+end
 
 # if array slicing ends up changing dimension, follow the parent
-function enmapwrap(x::Enmap{T,N,AA,P}, val::AAV) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}}
-    Enmap{T,NV,AAV,P}(val, getwcs(x))
+function enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}}
+    new_shape, new_wcs = slice_geometry(x, i...)
+    Enmap{T,NV,AAV,P}(val, new_wcs)
 end
-# enmapwrap(x::Enmap, val) = error("Unexpected result type $(typeof(val)).")
+
+
+# disable reducing dimension along the first two axes. should do more testing on this
+throw_1d_error() = error("An Enmap needs two WCS axes, for now. If you want a row, use a range i.e. enmap[5:5, :]")
+enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} =
+    throw_1d_error()
+enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1, i2::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} =
+    throw_1d_error()
+
+enmapwrap(x, val, i...) = error("Unexpected result type $(typeof(val)).")
 
 Base.strides(x::Enmap) = strides(parent(x))
 Base.stride(x::Enmap, i::Int) = stride(parent(x), i)

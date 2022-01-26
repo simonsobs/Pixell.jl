@@ -314,3 +314,22 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
     @assert length(skycoords) == 2
     return collect(sky2pix(m, first(skycoords), last(skycoords)))
 end
+
+# does not implement "nowrap" like pixell
+function slice_geometry(shape_all::NTuple{N}, wcs, sel_all::Vararg) where N
+    other_dims = shape_all[3:end]
+    sel = sel_all[1:2]
+
+    starts = map(s -> (step(s) > 0) ? first(s) - 1 : first(s), sel)  # handle backward ranges too
+    steps = step.(sel)
+    sel_sizes = last.(sel) .- first.(sel) .+ steps
+    crpix′ = (crpix(wcs) .- (starts .+ 0.5)) ./ steps .+ 0.5
+    cdelt′ = cdelt(wcs) .* steps
+    shape = sel_sizes .÷ steps
+
+    wcs′ = deepcopy(wcs)
+    wcs′.cdelt = collect(cdelt′)
+    wcs′.crpix = collect(crpix′)
+    return (shape..., other_dims...), wcs′
+end
+slice_geometry(m::Enmap, sel_all::Vararg) = slice_geometry(size(m), getwcs(m), sel_all...)
