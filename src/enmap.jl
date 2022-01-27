@@ -80,14 +80,8 @@ function enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i...) where {T,N,AA,P,NV,AAV<:A
     Enmap{T,NV,AAV,P}(val, new_wcs)
 end
 
-
-# disable reducing dimension along the first two axes. should do more testing on this
-throw_1d_error() = error("An Enmap needs two WCS axes, for now. If you want a row, use a range i.e. enmap[5:5, :]")
-enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} =
-    throw_1d_error()
-enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1, i2::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} =
-    throw_1d_error()
-
+enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} = val
+enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1, i2::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} = val
 enmapwrap(x, val, i...) = error("Unexpected result type $(typeof(val)).")
 
 Base.strides(x::Enmap) = strides(parent(x))

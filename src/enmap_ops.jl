@@ -335,10 +335,22 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
     return collect(sky2pix(m, first(skycoords), last(skycoords)))
 end
 
+# this set of slices is necessary because colons are somehow not expanded
+slice_geometry(shape::Tuple, wcs, sel_x::Colon, s...) = slice_geometry(shape, wcs, 1:shape[1], s...)
+slice_geometry(shape::Tuple, wcs, sel_x::Colon, sel_y::Colon, s...) = slice_geometry(shape, wcs, 1:shape[1], 1:shape[2], s...)
+slice_geometry(shape::Tuple, wcs, sel_x, sel_y::Colon, s...) = slice_geometry(shape, wcs, sel_x, 1:shape[2], s...)
+
+# this set of slices is neccesary because slices that remove one of the first two dimensions are not allowed, because
+# our WCS structure ALWAYS has two axes. However, it can be desirable to write code like "enmap[1,:] .= 0.0" instead 
+# even if the object on the left is no longer an Enmap
+slice_geometry(shape::Tuple, wcs, sel_x::Integer, sel_y::UnitRange, s...) = slice_geometry(shape, wcs, sel_x:sel_x, sel_y, s...)
+slice_geometry(shape::Tuple, wcs, sel_x::Integer, sel_y::Integer, s...) = slice_geometry(shape, wcs, sel_x:sel_x, sel_y:sel_y, s...)
+slice_geometry(shape::Tuple, wcs, sel_x::UnitRange, sel_y::Integer, s...) = slice_geometry(shape, wcs, sel_x, sel_y:sel_y, s...)
+
 # does not implement "nowrap" like pixell
-function slice_geometry(shape_all::NTuple{N}, wcs, sel_all::Vararg) where N
+function slice_geometry(shape_all::Tuple, wcs, sel_x, sel_y, sel_others...)
     other_dims = shape_all[3:end]
-    sel = sel_all[1:2]
+    sel = (sel_x, sel_y)
 
     starts = map(s -> (step(s) > 0) ? first(s) - 1 : first(s), sel)  # handle backward ranges too
     steps = step.(sel)

@@ -36,6 +36,18 @@ end
     @test all(ma[1,:,3] .≈ 2.0)
     ma[:,end,3] .= 3.0
     @test all(ma[:,end,3] .≈ 3.0)
+    ma[:,1,:] .= mb[:,2,:]
+    @test all(ma.data[:,1,:] .≈ mb.data[:,2,:])
+
+    A, B = rand(shape...), rand(shape...)
+    ma = Enmap(A, wcs)
+    mb = Enmap(B, wcs)
+    mb[:,:,1] .= ma[:,:,1]
+    @test all(ma.data[:,:,1] .≈ mb.data[:,:,1])
+    @test !all(ma.data[:,:,2] .≈ mb.data[:,:,2])
+    @test !all(ma.data[:,:,3] .≈ mb.data[:,:,3])
+    mb[:,:,:] .= ma[:,:,:]
+    @test all(ma.data .≈ mb.data)
 end
 
 ##
