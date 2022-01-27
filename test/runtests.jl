@@ -27,6 +27,15 @@ end
     @test A .+ B == ma .+ B
     @test A .+ B == A .+ mb
     @test A .+ B .* sin.(A.^2) == (ma .+ mb .* sin.(ma.^2))
+
+    ma .= 1.0
+    @test all(ma .≈ 1.0)
+    ma .= mb
+    @test all(ma .≈ mb)
+    ma[1,:,3] .= 2.0
+    @test all(ma[1,:,3] .≈ 2.0)
+    ma[:,end,3] .= 3.0
+    @test all(ma[:,end,3] .≈ 3.0)
 end
 
 ##
