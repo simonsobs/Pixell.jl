@@ -28,8 +28,11 @@ function Enmap(data::A, wcs) where {A<:AbstractArray}
     Enmap{eltype(A),ndims(A),A,CarClenshawCurtis}(data, wcs)
 end
 
+struct NoWCS end
+
 Base.parent(x::Enmap) = x.data
 getwcs(x::Enmap) = x.wcs
+getwcs(x) = NoWCS()
 
 # retrieve nonallocating WCS information. returns tuples of cdelt, crval, crpix
 cdelt(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :cdelt), 1), 
@@ -58,6 +61,11 @@ end
     Enmap(view(parent(x), idxs...), new_wcs)
 end
 
+# totally give up if the RA and DEC slices are eliminated, and just return a view of the parent
+@propagate_inbounds Base.view(x::Enmap, ix::Integer, idxs...) = view(parent(x), ix, idxs...)
+@propagate_inbounds Base.view(x::Enmap, ix, iy::Integer, idxs...) = view(parent(x), ix, iy, idxs...)
+
+
 @propagate_inbounds Base.getindex(x::Enmap, i::Int...) = getindex(parent(x), i...)
 @propagate_inbounds function Base.getindex(x::Enmap, i...)
     enmapwrap(x, getindex(parent(x), i...), i...)
@@ -80,14 +88,8 @@ function enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i...) where {T,N,AA,P,NV,AAV<:A
     Enmap{T,NV,AAV,P}(val, new_wcs)
 end
 
-
-# disable reducing dimension along the first two axes. should do more testing on this
-throw_1d_error() = error("An Enmap needs two WCS axes, for now. If you want a row, use a range i.e. enmap[5:5, :]")
-enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} =
-    throw_1d_error()
-enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1, i2::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} =
-    throw_1d_error()
-
+enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} = val
+enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1, i2::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} = val
 enmapwrap(x, val, i...) = error("Unexpected result type $(typeof(val)).")
 
 Base.strides(x::Enmap) = strides(parent(x))
@@ -117,7 +119,6 @@ enmapstyle(x) = EnmapStyle(x)
 enmapstyle(x::Broadcast.Unknown) = x
 
 
-struct NoWCS end
 combine(x::NoWCS, y) = copy(y)
 combine(x, y::NoWCS) = copy(x)
 combine(x::NoWCS, ::NoWCS) = x
