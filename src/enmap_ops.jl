@@ -52,6 +52,20 @@ fullsky_geometry(res; shape = nothing, dims = ()) =
 
 
 """
+    rewrap(angles, period=2π, ref_angle=0)
+
+Given angles or other cyclic coordinates with the specified period, such that
+the angle + period has the same meaning as the original angle, this function adds or subtracts 
+multiples of the period such that the result has the same meaning, but now all angles lie in
+an interval of length the specified period, centered on the reference angle `ref_angle`.
+"""
+function rewrap(angles, period=2π, ref_angle=0)
+    half_period = period / 2
+    return ref_angle .+ mod.(angles .- ref_angle .+ half_period, period) .- half_period
+end
+# the counterpart, unwrap, is provided by DSP.jl
+
+"""
     pix2sky(m::Enmap, pixcoords)
 
 Convert 1-indexed pixels to sky coordinates. The output sky coordinates are determined by WCS,
