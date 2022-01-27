@@ -53,7 +53,11 @@ end
     @test Pixell.getwcs(mv) == Pixell.NoWCS()
     mv = ma[1,:,1]
     @test Pixell.getwcs(mv) == Pixell.NoWCS()
+    mv = ma[1,:,:]
+    @test Pixell.getwcs(mv) == Pixell.NoWCS()
     mv = ma[1:5,:,1]
+    @test Pixell.getwcs(mv) != Pixell.NoWCS()
+    mv = ma[1:5,:,:]
     @test Pixell.getwcs(mv) != Pixell.NoWCS()
 end
 
