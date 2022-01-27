@@ -58,6 +58,11 @@ end
     Enmap(view(parent(x), idxs...), new_wcs)
 end
 
+# totally give up if the RA and DEC slices are eliminated, and just return a view of the parent
+@propagate_inbounds Base.view(x::Enmap, ix::Integer, idxs...) = view(parent(x), ix, idxs...)
+@propagate_inbounds Base.view(x::Enmap, ix, iy::Integer, idxs...) = view(parent(x), ix, iy, idxs...)
+
+
 @propagate_inbounds Base.getindex(x::Enmap, i::Int...) = getindex(parent(x), i...)
 @propagate_inbounds function Base.getindex(x::Enmap, i...)
     enmapwrap(x, getindex(parent(x), i...), i...)
