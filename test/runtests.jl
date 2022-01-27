@@ -48,6 +48,13 @@ end
     @test !all(ma.data[:,:,3] .≈ mb.data[:,:,3])
     mb[:,:,:] .= ma[:,:,:]
     @test all(ma.data .≈ mb.data)
+
+    mv = @view ma[1,:,1]
+    @test Pixell.getwcs(mv) == Pixell.NoWCS()
+    mv = ma[1,:,1]
+    @test Pixell.getwcs(mv) == Pixell.NoWCS()
+    mv = ma[1:5,:,1]
+    @test Pixell.getwcs(mv) != Pixell.NoWCS()
 end
 
 ##

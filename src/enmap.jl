@@ -28,8 +28,11 @@ function Enmap(data::A, wcs) where {A<:AbstractArray}
     Enmap{eltype(A),ndims(A),A,CarClenshawCurtis}(data, wcs)
 end
 
+struct NoWCS end
+
 Base.parent(x::Enmap) = x.data
 getwcs(x::Enmap) = x.wcs
+getwcs(x) = NoWCS()
 
 # retrieve nonallocating WCS information. returns tuples of cdelt, crval, crpix
 cdelt(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :cdelt), 1), 
@@ -116,7 +119,6 @@ enmapstyle(x) = EnmapStyle(x)
 enmapstyle(x::Broadcast.Unknown) = x
 
 
-struct NoWCS end
 combine(x::NoWCS, y) = copy(y)
 combine(x, y::NoWCS) = copy(x)
 combine(x::NoWCS, ::NoWCS) = x
