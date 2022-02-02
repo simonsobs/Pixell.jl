@@ -41,12 +41,12 @@ export register_colors!
     color          --> :greys
     xlim           --> (1, size(imap.data,1))  # not nice
     ylim           --> (1, size(imap.data,2))
-    colorbar       --> false
+    colorbar       --> true
     minorticks     --> true
     tick_direction --> :out
     grid           --> false
 
-    imap.data
+    imap.data'
 end
 
 # format pixel index with its sky coordinate. ra: ind=1, dec: ind=2
