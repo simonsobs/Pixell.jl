@@ -72,7 +72,7 @@ end
 
 function unwind(angles; dims=nothing, period=2π, ref_angle=0)
     wound_angles = rewind(angles; period=period, ref_angle=ref_angle)
-    return unwrap(angles .- ref_angle; dims=dims, range=period) .+ ref_angle
+    return unwrap(wound_angles .- ref_angle; dims=dims, range=period) .+ ref_angle
 end
 
 function unwind!(angles; dims=nothing, period=2π, ref_angle=0)
