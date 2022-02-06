@@ -138,7 +138,7 @@ function sky2pix(m::Enmap{T}, skycoords; safe=true) where T
     inverse_angle_unit = 1 / angle_unit
     pixcoords = world_to_pix(getwcs(m), skycoords .* inverse_angle_unit)
     if safe
-        center_pix = size(m)[1:2] ./ 2
+        center_pix = size(m)[1:2] ./ 2 .+ 1
         pix_periods = abs.(2π ./ (cdelt(wcs_m) .* angle_unit))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
@@ -151,7 +151,7 @@ function sky2pix!(m::Enmap{T}, skycoords, pixcoords; safe=true) where T
     inverse_angle_unit = 1 / angle_unit
     world_to_pix!(getwcs(m), skycoords .* inverse_angle_unit, pixcoords)
     if safe
-        center_pix = size(m)[1:2] ./ 2
+        center_pix = size(m)[1:2] ./ 2 .+ 1
         pix_periods = abs.(2π ./ (cdelt(wcs_m) .* angle_unit))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
@@ -336,7 +336,7 @@ function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{T
     end
 
     if safe
-        center_pix = size(m)[1:2] ./ 2
+        center_pix = size(m)[1:2] ./ 2 .+ 1
         pix_periods = abs.(2π ./ (Δα, Δδ))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
@@ -382,7 +382,7 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
     pix_dec = iδ₀ + (dec - δ₀) / Δδ
 
     if safe
-        center_pix = size(m)[1:2] ./ 2
+        center_pix = size(m)[1:2] ./ 2 .+ 1
         pix_ra = rewind(pix_ra; period=abs(2π / Δα), ref_angle=center_pix[1])
         pix_dec = rewind(pix_dec; period=abs(2π / Δδ), ref_angle=center_pix[2])
     end
@@ -400,7 +400,7 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
     pix_dec = iδ₀ .+ (dec .- δ₀) .* Δδ⁻¹
     
     if safe
-        center_pix = size(m)[1:2] ./ 2
+        center_pix = size(m)[1:2] ./ 2 .+ 1
         rewind!(pix_ra; period=abs(2π * Δα⁻¹), ref_angle=center_pix[1])
         rewind!(pix_dec; period=abs(2π * Δδ⁻¹), ref_angle=center_pix[2])
     end
