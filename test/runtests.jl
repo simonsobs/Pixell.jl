@@ -76,17 +76,17 @@ wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
 
     # check that our custom implementations 
     pixcoords = π .* rand(2, 1024)
-    skycoords = pix2sky(m, pixcoords)
+    skycoords = pix2sky(m, pixcoords; safe=false)
     @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords) .* (π/180)
     skycoords .= 0.0
-    pix2sky!(m, pixcoords, skycoords)
+    pix2sky!(m, pixcoords, skycoords; safe=false)
     @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords) .* (π/180)
     
     skycoords = π .* rand(2, 1024)
-    pixcoords = sky2pix(m, skycoords)
+    pixcoords = sky2pix(m, skycoords; safe=false)
     @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords .* (180/π))
     pixcoords .= 0.0
-    sky2pix!(m, skycoords, pixcoords)
+    sky2pix!(m, skycoords, pixcoords; safe=false)
     @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords .* (180/π))
 end
 

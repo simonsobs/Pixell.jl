@@ -14,7 +14,6 @@ WCS = "15f3aee2-9e10-537f-b834-a6fb8bdb944d"
 FFTW = "1"
 FITSIO = "0.16"
 WCS = "0.6"
-DSP = "0.7"
 julia = "1.6"
 
 [extras]

@@ -4,7 +4,7 @@ using WCS
 using FITSIO
 using FFTW
 using Printf
-using DSP: unwrap
+using DSP: unwrap, unwrap!
 
 include("enmap.jl")
 include("enmap_ops.jl")
