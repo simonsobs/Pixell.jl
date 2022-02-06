@@ -139,7 +139,7 @@ function sky2pix(m::Enmap{T}, skycoords; safe=true) where T
     pixcoords = world_to_pix(getwcs(m), skycoords .* inverse_angle_unit)
     if safe
         center_pix = size(m)[1:2] ./ 2
-        pix_periods = abs.(2π ./ (cdelt(wcs_m)  .* angle_unit))
+        pix_periods = abs.(2π ./ (cdelt(wcs_m) .* angle_unit))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
     end
@@ -152,7 +152,7 @@ function sky2pix!(m::Enmap{T}, skycoords, pixcoords; safe=true) where T
     world_to_pix!(getwcs(m), skycoords .* inverse_angle_unit, pixcoords)
     if safe
         center_pix = size(m)[1:2] ./ 2
-        pix_periods = abs.(2π ./ (cdelt(wcs_m)  .* inverse_angle_unit))
+        pix_periods = abs.(2π ./ (cdelt(wcs_m) .* angle_unit))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
     end
@@ -337,7 +337,7 @@ function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{T
 
     if safe
         center_pix = size(m)[1:2] ./ 2
-        pix_periods = abs.(2π ./ (cdelt(wcs_m)  ./ angle_unit))
+        pix_periods = abs.(2π ./ (Δα, Δδ))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
     end
