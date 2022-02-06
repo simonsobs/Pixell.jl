@@ -383,13 +383,13 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
 
     if safe
         center_pix = size(m)[1:2] ./ 2
-        pix_ra = rewind(pix_ra; period=2π / Δα, ref_angle=center_pix[1])
-        pix_dec = rewind(pix_dec; period=2π / Δδ, ref_angle=center_pix[2])
+        pix_ra = rewind(pix_ra; period=abs(2π / Δα), ref_angle=center_pix[1])
+        pix_dec = rewind(pix_dec; period=abs(2π / Δδ), ref_angle=center_pix[2])
     end
     return pix_ra, pix_dec
 end
 function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 ra::AV, dec::AV) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
+                 ra::AV, dec::AV; safe=true) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
     wcs_m = getwcs(m)
     angle_unit = get_unit(T, wcs_m)
     α₀, δ₀ = crval(wcs_m) .* angle_unit
@@ -401,8 +401,8 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
     
     if safe
         center_pix = size(m)[1:2] ./ 2
-        rewind!(pix_ra; period=(2π * Δα⁻¹), ref_angle=center_pix[1])
-        rewind!(pix_dec; period=(2π * Δδ⁻¹), ref_angle=center_pix[2])
+        rewind!(pix_ra; period=abs(2π * Δα⁻¹), ref_angle=center_pix[1])
+        rewind!(pix_dec; period=abs(2π * Δδ⁻¹), ref_angle=center_pix[2])
     end
 
     return pix_ra, pix_dec
