@@ -7,12 +7,16 @@ version = "0.1.0"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FITSIO = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+UnitfulAngles = "6fb2a4bd-7999-5318-a3b2-8ad61056cd98"
 WCS = "15f3aee2-9e10-537f-b834-a6fb8bdb944d"
 
 [compat]
 FFTW = "1"
 FITSIO = "0.16"
 WCS = "0.6"
+Unitful = "1"
+UnitfulAngles = "0.5, 0.6"
 julia = "1.6"
 
 [extras]
