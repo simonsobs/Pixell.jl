@@ -52,6 +52,39 @@ fullsky_geometry(res; shape = nothing, dims = ()) =
 
 
 """
+    rewind(angles, period=2π, ref_angle=0)
+
+Given angles or other cyclic coordinates with the specified period, such that
+the angle + period has the same meaning as the original angle, this function adds or subtracts 
+multiples of the period such that the result has the same meaning, but now all angles lie in
+an interval of length the specified period, centered on the reference angle `ref_angle`.
+"""
+function rewind(angles; period=2π, ref_angle=0)
+    half_period = period / 2
+    return ref_angle .+ mod.(angles .- ref_angle .+ half_period, period) .- half_period
+end
+
+function rewind!(angles; period=2π, ref_angle=0)
+    half_period = period / 2
+    angles .= ref_angle .+ mod.(angles .- ref_angle .+ half_period, period) .- half_period
+    return angles
+end
+
+function unwind(angles; dims=nothing, period=2π, ref_angle=0)
+    wound_angles = rewind(angles; period=period, ref_angle=ref_angle)
+    return unwrap(wound_angles .- ref_angle; dims=dims, range=period) .+ ref_angle
+end
+
+function unwind!(angles; dims=nothing, period=2π, ref_angle=0)
+    rewind!(angles; period=period, ref_angle=ref_angle)
+    angles .-= ref_angle
+    unwrap!(angles; dims=dims, range=period)
+    angles .+= ref_angle
+    return angles
+end
+
+
+"""
     pix2sky(m::Enmap, pixcoords)
 
 Convert 1-indexed pixels to sky coordinates. The output sky coordinates are determined by WCS,
@@ -80,23 +113,50 @@ function pix2sky end
 ## The default fallback (no projection specified) is to call WCS, which calls the C library.
 ## If you wanted to replicate Pixell behavior, add 1 to x and y of pixcoords.
 ## We implement custom routines for CAR (Clenshaw-Curtis variant) instead of using these.
-function pix2sky(m::Enmap{T}, pixcoords) where T
-    angle_unit = get_unit(T, w)
-    return pix_to_world(getwcs(m), pixcoords) .* angle_unit
-end
-function pix2sky!(m::Enmap{T}, pixcoords, skycoords) where T
-    angle_unit = get_unit(T, w)
-    pix_to_world!(getwcs(m), pixcoords, skycoords)
-    skycoords .*= angle_unit
+function pix2sky(m::Enmap{T}, pixcoords; safe=true) where T
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    skycoords = pix_to_world(wcs_m, pixcoords) .* angle_unit
+    if safe
+        return unwind(skycoords; dims=2)
+    end
     return skycoords
 end
-function sky2pix(m::Enmap{T}, skycoords) where T
-    inverse_angle_unit = 1 / get_unit(T, w)
-    return world_to_pix(getwcs(m), skycoords .* inverse_angle_unit)
+function pix2sky!(m::Enmap{T}, pixcoords, skycoords; safe=true) where T
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    pix_to_world!(getwcs(m), pixcoords, skycoords)
+    skycoords .*= angle_unit
+    if safe
+        unwind!(skycoords; dims=2)
+    end
+    return skycoords
 end
-function sky2pix!(m::Enmap{T}, skycoords, pixcoords) where T
-    inverse_angle_unit = 1 / get_unit(T, w)
-    return world_to_pix!(getwcs(m), skycoords .* inverse_angle_unit, pixcoords)
+function sky2pix(m::Enmap{T}, skycoords; safe=true) where T
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    inverse_angle_unit = 1 / angle_unit
+    pixcoords = world_to_pix(getwcs(m), skycoords .* inverse_angle_unit)
+    if safe
+        center_pix = size(m)[1:2] ./ 2 .+ 1
+        pix_periods = abs.(2π ./ (cdelt(wcs_m) .* angle_unit))
+        rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
+        rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
+    end
+    return pixcoords
+end
+function sky2pix!(m::Enmap{T}, skycoords, pixcoords; safe=true) where T
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    inverse_angle_unit = 1 / angle_unit
+    world_to_pix!(getwcs(m), skycoords .* inverse_angle_unit, pixcoords)
+    if safe
+        center_pix = size(m)[1:2] ./ 2 .+ 1
+        pix_periods = abs.(2π ./ (cdelt(wcs_m) .* angle_unit))
+        rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
+        rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
+    end
+    return pixcoords
 end
 
 """
@@ -125,15 +185,15 @@ julia> pix2sky!(m, pixcoords, skycoords)
 ```
 """
 function pix2sky!(m::Enmap{T,N,AA,CarClenshawCurtis},
-    pixcoords::AbstractArray{TP,2}, skycoords::AbstractArray{TS,2}
+    pixcoords::AbstractArray{TP,2}, skycoords::AbstractArray{TS,2}; safe=true
 ) where {T,N,AA<:AbstractArray{T,N},TP,TS}
 
     # retrieve WCS info
-    w = getwcs(m)
-    angle_unit = get_unit(T, w)
-    α₀, δ₀ = crval(w) .* angle_unit
-    Δα, Δδ = cdelt(w) .* angle_unit
-    iα₀, iδ₀ = crpix(w)
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    α₀, δ₀ = crval(wcs_m) .* angle_unit
+    Δα, Δδ = cdelt(wcs_m) .* angle_unit
+    iα₀, iδ₀ = crpix(wcs_m)
 
     # compute RA (α) and DEC (δ)
     @inbounds for ipix ∈ axes(pixcoords, 2)
@@ -144,15 +204,19 @@ function pix2sky!(m::Enmap{T,N,AA,CarClenshawCurtis},
         skycoords[1, ipix] = α
         skycoords[2, ipix] = δ
     end
+    
+    if safe
+        unwind!(skycoords; dims=2)
+    end
 
     return skycoords
 end
 
 # the not-in-place version just creates an output array and calls the in-place one above
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, pixcoords::AbstractArray{TP,2}
+function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, pixcoords::AbstractArray{TP,2}; safe=true
 ) where {T,N,AA<:AbstractArray{T,N},TP}
     skycoords = similar(pixcoords)
-    return pix2sky!(m, pixcoords, skycoords)
+    return pix2sky!(m, pixcoords, skycoords; safe=safe)
 end
 
 """
@@ -174,33 +238,29 @@ julia> pix2sky(m, 30.0, 80.0)
 ```
 """
 function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 ra_pixel::Number, dec_pixel::Number) where {T,N,AA<:AbstractArray{T,N}}
-    w = getwcs(m)
-    angle_unit = get_unit(T, w)
-    α₀, δ₀ = crval(w) .* angle_unit
-    Δα, Δδ = cdelt(w) .* angle_unit
-    iα₀, iδ₀ = crpix(w)
-    α = α₀ + (ra_pixel - iα₀) * Δα
-    δ = δ₀ + (dec_pixel - iδ₀) * Δδ
-    return α, δ
-end
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 ra_pixel::AV, dec_pixel::AV) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
-    w = getwcs(m)
-    angle_unit = get_unit(T, w)
-    α₀, δ₀ = crval(w) .* angle_unit
-    Δα, Δδ = cdelt(w) .* angle_unit
-    iα₀, iδ₀ = crpix(w)
+                 ra_pixel, dec_pixel; safe=true) where {T,N,AA<:AbstractArray{T,N}}
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    α₀, δ₀ = crval(wcs_m) .* angle_unit
+    Δα, Δδ = cdelt(wcs_m) .* angle_unit
+    iα₀, iδ₀ = crpix(wcs_m)
     α = α₀ .+ (ra_pixel .- iα₀) .* Δα
     δ = δ₀ .+ (dec_pixel .- iδ₀) .* Δδ
+    if safe
+        return rewind(α), rewind(δ)
+    end
     return α, δ
 end
 
 # when passing a length-2 vector [ra, dec], return a vector. wraps the pix2sky(m, ra_pix, dec_pix)
 function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 pixcoords::AbstractVector) where {T,N,AA<:AbstractArray{T,N}}
+                 pixcoords::AbstractVector; safe=true) where {T,N,AA<:AbstractArray{T,N}}
     @assert length(pixcoords) == 2
-    return collect(pix2sky(m, first(pixcoords), last(pixcoords)))
+    skycoords = collect(pix2sky(m, first(pixcoords), last(pixcoords)))
+    if safe
+        unwind!(skycoords; dims=2)
+    end
+    return skycoords
 end
 
 
@@ -255,14 +315,14 @@ julia> sky2pix!(m, skycoords, pixcoords)
 ```
 """
 function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{TS,2}, 
-                  pixcoords::AbstractArray{TP,2}) where {T,N,AA<:AbstractArray{T,N},TS,TP}
+                  pixcoords::AbstractArray{TP,2}; safe=true) where {T,N,AA<:AbstractArray{T,N},TS,TP}
 
     # retrieve WCS info
-    w = getwcs(m)
-    angle_unit = get_unit(T, w)
-    α₀, δ₀ = crval(w) .* angle_unit
-    Δα, Δδ = cdelt(w) .* angle_unit
-    iα₀, iδ₀ = crpix(w)
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    α₀, δ₀ = crval(wcs_m) .* angle_unit
+    Δα, Δδ = cdelt(wcs_m) .* angle_unit
+    iα₀, iδ₀ = crpix(wcs_m)
     Δα⁻¹, Δδ⁻¹ = 1 / Δα, 1 / Δδ
 
     # compute RA (α) index and DEC (δ) index
@@ -275,14 +335,21 @@ function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{T
         pixcoords[2, ipix] = iδ
     end
 
+    if safe
+        center_pix = size(m)[1:2] ./ 2 .+ 1
+        pix_periods = abs.(2π ./ (Δα, Δδ))
+        rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
+        rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
+    end
+
     return pixcoords
 end
 
 # the not-in-place version just creates an output array and calls the in-place one above
 function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 skycoords::AbstractArray{TS,2}) where {T,N,AA<:AbstractArray{T,N},TS}
+                 skycoords::AbstractArray{TS,2}; safe=true) where {T,N,AA<:AbstractArray{T,N},TS}
     pixcoords = similar(skycoords)
-    return sky2pix!(m, skycoords, pixcoords)
+    return sky2pix!(m, skycoords, pixcoords; safe=safe)
 end
 
 
@@ -305,34 +372,47 @@ julia> sky2pix(m, 30.0, 80.0)
 ```
 """
 function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 ra::Number, dec::Number) where {T,N,AA<:AbstractArray{T,N}}
-    w = getwcs(m)
-    angle_unit = get_unit(T, w)
-    α₀, δ₀ = crval(w) .* angle_unit
-    Δα, Δδ = cdelt(w) .* angle_unit
-    iα₀, iδ₀ = crpix(w)
+                 ra::Number, dec::Number; safe=true) where {T,N,AA<:AbstractArray{T,N}}
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    α₀, δ₀ = crval(wcs_m) .* angle_unit
+    Δα, Δδ = cdelt(wcs_m) .* angle_unit
+    iα₀, iδ₀ = crpix(wcs_m)
     pix_ra = iα₀ + (ra - α₀) / Δα
     pix_dec = iδ₀ + (dec - δ₀) / Δδ
+
+    if safe
+        center_pix = size(m)[1:2] ./ 2 .+ 1
+        pix_ra = rewind(pix_ra; period=abs(2π / Δα), ref_angle=center_pix[1])
+        pix_dec = rewind(pix_dec; period=abs(2π / Δδ), ref_angle=center_pix[2])
+    end
     return pix_ra, pix_dec
 end
 function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
-                 ra::AV, dec::AV) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
-    w = getwcs(m)
-    angle_unit = get_unit(T, w)
-    α₀, δ₀ = crval(w) .* angle_unit
-    Δα, Δδ = cdelt(w) .* angle_unit
-    iα₀, iδ₀ = crpix(w)
+                 ra::AV, dec::AV; safe=true) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
+    wcs_m = getwcs(m)
+    angle_unit = get_unit(T, wcs_m)
+    α₀, δ₀ = crval(wcs_m) .* angle_unit
+    Δα, Δδ = cdelt(wcs_m) .* angle_unit
+    iα₀, iδ₀ = crpix(wcs_m)
     Δα⁻¹, Δδ⁻¹ = 1 / Δα, 1 / Δδ
     pix_ra = iα₀ .+ (ra .- α₀) .* Δα⁻¹
     pix_dec = iδ₀ .+ (dec .- δ₀) .* Δδ⁻¹
+    
+    if safe
+        center_pix = size(m)[1:2] ./ 2 .+ 1
+        rewind!(pix_ra; period=abs(2π * Δα⁻¹), ref_angle=center_pix[1])
+        rewind!(pix_dec; period=abs(2π * Δδ⁻¹), ref_angle=center_pix[2])
+    end
+
     return pix_ra, pix_dec
 end
 
 # when passing a vector [ra, dec], return a vector. wraps the sky2pix(m, ra, dec).
 function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
-                 skycoords::AbstractVector) where {T,N,AA<:AbstractArray{T,N}}
+                 skycoords::AbstractVector; safe=true) where {T,N,AA<:AbstractArray{T,N}}
     @assert length(skycoords) == 2
-    return collect(sky2pix(m, first(skycoords), last(skycoords)))
+    return collect(sky2pix(m, first(skycoords), last(skycoords); safe=safe))
 end
 
 # this set of slices is necessary because colons are somehow not expanded
