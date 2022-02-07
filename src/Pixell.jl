@@ -6,6 +6,7 @@ using FFTW
 using Printf
 import Unitful, UnitfulAngles
 import Unitful: uconvert, ustrip
+using DSP: unwrap, unwrap!
 
 include("enmap.jl")
 include("enmap_geom.jl")
