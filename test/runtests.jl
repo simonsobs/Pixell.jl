@@ -1,6 +1,7 @@
 using Pixell
 using Test
 
+import Pixell: degree, arcminute
 
 @testset "Enmap geometry" begin
     shape, wcs = fullsky_geometry(deg2rad(1 / 60))
@@ -15,6 +16,29 @@ using Test
 
     shape, wcs = fullsky_geometry(deg2rad(5); dims=(3,))
     @test shape == (72, 37, 3)
+
+    box = [10  -10;           # RA
+           -5    5] * degree  # DEC
+    shape, wcs = geometry(CarClenshawCurtis, box, 0.5 * arcminute)
+    @test shape == (2400, 1200)
+    @test wcs.cdelt ≈ [-0.008333333333333333,  0.008333333333333333]
+    @test wcs.crpix == [1201, 601]
+    @test wcs.crval == [0.0, 0.0]
+
+    box = [11  -10;           # RA
+           -6    5] * degree  # DEC
+    shape, wcs = geometry(CarClenshawCurtis, box, 0.5 * arcminute)
+    @test shape == (2520, 1320)
+    @test wcs.cdelt ≈ [-0.008333333333333333,  0.008333333333333333]
+    @test wcs.crpix ≈ [1261, 721]
+    @test wcs.crval ≈ [0.5, 0.0]
+
+    box = [10   -4;           # RA
+           -3    5] * degree  # DEC
+    shape, wcs = geometry(CarClenshawCurtis, box, 0.5 * arcminute)
+    @test shape == (1680, 960)
+    @test wcs.crpix ≈ [841, 361]
+    @test wcs.crval ≈ [3.0, 0.0]
 end
 
 ##

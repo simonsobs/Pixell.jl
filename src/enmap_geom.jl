@@ -57,7 +57,6 @@ function geometry(::Type{<:CarClenshawCurtis}, bbox_coords, res)
     # get everything into radians
     res_in_radians = ustrip.(uconvert.(radian, res))
     resx, resy = res_in_radians
-    @show res_in_radians resx resy
     @assert abs(2π / resx - round(2π / resx)) < 1e-8 "Horizontal resolution" * 
         " does not evenly divide the sky; this is required for SHTs."
     @assert abs(2π / resy - round(2π / resy)) < 1e-8 "Vertical resolution" *
