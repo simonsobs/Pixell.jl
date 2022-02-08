@@ -11,6 +11,7 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 WCS = "15f3aee2-9e10-537f-b834-a6fb8bdb944d"
 
 [compat]
+DSP = "0.7"
 FFTW = "1"
 FITSIO = "0.16"
 WCS = "0.6"
