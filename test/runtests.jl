@@ -146,6 +146,29 @@ end
             @test dec_pix ≈ dec_pix_unsafe
         end
     end
+
+    box = [179   -179;           # RA
+           -89     89] * degree  # DEC
+    shape, wcs = geometry(CarClenshawCurtis, box, 1 * degree)
+    m = Enmap(ones(shape), wcs)
+    for i in 1:shape[1]
+        for j in 1:shape[2]
+            ra, dec = pix2sky(m, i, j)
+            ra_unsafe, dec_unsafe = pix2sky(m, i, j; safe=false)
+            @test ra ≈ ra_unsafe 
+            @test dec ≈ dec_unsafe
+            @test -π ≤ ra ≤ π
+            @test -π/2 ≤ dec ≤ π/2
+            
+            ra_pix, dec_pix = sky2pix(m, ra, dec)
+            ra_pix_unsafe, dec_pix_unsafe = sky2pix(m, ra, dec; safe=false)
+
+            @test ra_pix ≈ ra_pix_unsafe
+            @test dec_pix ≈ dec_pix_unsafe
+            @test 1 ≤ ra_pix ≤ shape[1]
+            @test 1 ≤ dec_pix ≤ shape[2]
+        end
+    end
     
     # determine if safe angles are on the sky
     shape, wcs = fullsky_geometry(deg2rad(1))
@@ -154,11 +177,18 @@ end
         for j in 1:shape[2]
             ra, dec = pix2sky(m, i, j)
             ra_unsafe, dec_unsafe = pix2sky(m, i, j; safe=false)
-
             @test -π ≤ ra ≤ π
             @test -π/2 ≤ dec ≤ π/2
+
+            ra_pix, dec_pix = sky2pix(m, ra, dec)
+            @test 1 ≤ ra_pix ≤ shape[1]
+            @test 1 ≤ dec_pix ≤ shape[2]
+            ra_pix, dec_pix = sky2pix(m, ra_unsafe, dec_unsafe)
+            @test 1 ≤ ra_pix ≤ shape[1]
+            @test 1 ≤ dec_pix ≤ shape[2]
         end
     end
+    
 end
 
 ## 
