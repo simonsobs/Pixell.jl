@@ -116,6 +116,49 @@ wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
     pixcoords .= 0.0
     sky2pix!(m, skycoords, pixcoords; safe=false)
     @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords .* (180/π))
+
+    box = [10   -10;           # RA
+           -5     5] * degree  # DEC
+    shape, wcs = geometry(CarClenshawCurtis, box, 1 * degree)
+    m = Enmap(ones(shape), wcs)
+    @test [sky2pix(m, deg2rad(ra), 0.0; safe=true)[1]
+        for ra in 178:182] ≈ [-167., -168., -169.,  190.,  189.]
+
+end
+
+##
+@testset "sky2pix every single pixel" begin
+    box = [10   -10;           # RA
+           -5     5] * degree  # DEC
+    shape, wcs = geometry(CarClenshawCurtis, box, 1 * degree)
+    m = Enmap(ones(shape), wcs)
+    for i in 1:shape[1]
+        for j in 1:shape[2]
+            ra, dec = pix2sky(m, i, j)
+            ra_unsafe, dec_unsafe = pix2sky(m, i, j; safe=false)
+            @test ra ≈ ra_unsafe 
+            @test dec ≈ dec_unsafe
+            
+            ra_pix, dec_pix = sky2pix(m, ra, dec)
+            ra_pix_unsafe, dec_pix_unsafe = sky2pix(m, ra, dec; safe=false)
+
+            @test ra_pix ≈ ra_pix_unsafe
+            @test dec_pix ≈ dec_pix_unsafe
+        end
+    end
+    
+    # determine if safe angles are on the sky
+    shape, wcs = fullsky_geometry(deg2rad(1))
+    m = Enmap(ones(shape), wcs)
+    for i in 1:shape[1]
+        for j in 1:shape[2]
+            ra, dec = pix2sky(m, i, j)
+            ra_unsafe, dec_unsafe = pix2sky(m, i, j; safe=false)
+
+            @test -π ≤ ra ≤ π
+            @test -π/2 ≤ dec ≤ π/2
+        end
+    end
 end
 
 ## 
