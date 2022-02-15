@@ -73,7 +73,7 @@ end
 @propagate_inbounds Base.setindex!(x::Enmap, v, i...) = (setindex!(parent(x), v, i...); x)
 
 function Base.similar(x::Enmap, ::Type{S}, dims::NTuple{<:Any,Int}) where {S}
-    Enmap(similar(parent(x), S, dims), getwcs(x))
+    Enmap(similar(parent(x), S, dims), deepcopy(getwcs(x)))
 end
 
 enmapwrap(x::Enmap{T}, val::T, i...) where {T} = val
