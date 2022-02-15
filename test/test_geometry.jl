@@ -40,51 +40,6 @@ import Pixell: degree, arcminute
     @test wcs.crval ≈ [3.0, 0.0]
 end
 
-##
-@testset "Enmap broadcasting" begin
-    shape, wcs = fullsky_geometry(deg2rad(1); dims=(3,))
-    A, B = rand(shape...), rand(shape...)
-    ma = Enmap(A, wcs)
-    mb = Enmap(B, wcs)
-    @test A .+ B == ma .+ mb
-    @test A .+ B == ma .+ B
-    @test A .+ B == A .+ mb
-    @test A .+ B .* sin.(A.^2) == (ma .+ mb .* sin.(ma.^2))
-
-    ma .= 1.0
-    @test all(ma .≈ 1.0)
-    ma .= mb
-    @test all(ma .≈ mb)
-    ma[1,:,3] .= 2.0
-    @test all(ma[1,:,3] .≈ 2.0)
-    ma[:,end,3] .= 3.0
-    @test all(ma[:,end,3] .≈ 3.0)
-    ma[:,1,:] .= mb[:,2,:]
-    @test all(ma.data[:,1,:] .≈ mb.data[:,2,:])
-
-    A, B = rand(shape...), rand(shape...)
-    ma = Enmap(A, wcs)
-    mb = Enmap(B, wcs)
-    mb[:,:,1] .= ma[:,:,1]
-    @test all(ma.data[:,:,1] .≈ mb.data[:,:,1])
-    @test !all(ma.data[:,:,2] .≈ mb.data[:,:,2])
-    @test !all(ma.data[:,:,3] .≈ mb.data[:,:,3])
-    mb[:,:,:] .= ma[:,:,:]
-    @test all(ma.data .≈ mb.data)
-
-    mv = @view ma[1,:,1]
-    @test Pixell.getwcs(mv) == Pixell.NoWCS()
-    mv = ma[1,:,1]
-    @test Pixell.getwcs(mv) == Pixell.NoWCS()
-    mv = ma[1,:,:]
-    @test Pixell.getwcs(mv) == Pixell.NoWCS()
-    mv = ma[1:5,:,1]
-    @test Pixell.getwcs(mv) != Pixell.NoWCS()
-    mv = ma[1:5,:,:]
-    @test Pixell.getwcs(mv) != Pixell.NoWCS()
-end
-
-##
 
 wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
 @testset "Enmap sky2pix and pix2sky" begin
