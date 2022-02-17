@@ -1,10 +1,5 @@
 using Base: ViewIndex, @propagate_inbounds, AbstractCartesianIndex
 
-abstract type AbstractMapProjection end
-abstract type EquiCylProjection <: AbstractMapProjection end  # equidistant cylindrical projection
-abstract type CarProjection <: EquiCylProjection end          # plate carrée
-
-struct CarClenshawCurtis <: CarProjection end      # plate carrée with pixels on poles and equator
 
 
 """
@@ -14,18 +9,14 @@ It only implements the subset of Base.Array operations which are common on maps.
 You should work with the data directly using `enmap_instance.data` if you need
 additional Array functions.
 """
-struct Enmap{T,N,AA<:AbstractArray,P<:AbstractMapProjection} <: AbstractArray{T,N}
+struct Enmap{T,N,AA<:AbstractArray,W<:AbstractWCSTransform} <: AbstractArray{T,N}
     data::AA  # some kind of abstract array
-    wcs::WCSTransform  # WCS object from WCS.jl
+    wcs::W    # WCS object
 end
 
 
-function Enmap(data::A, wcs, ::Type{PT}) where {A<:AbstractArray,PT}
-    Enmap{eltype(A),ndims(A),A,PT}(data, wcs)
-end
-# create CAR (Clenshaw-Curtis variant) maps by default
-function Enmap(data::A, wcs) where {A<:AbstractArray}
-    Enmap{eltype(A),ndims(A),A,CarClenshawCurtis}(data, wcs)
+function Enmap(data::A, wcs::W) where {A<:AbstractArray,W<:AbstractWCSTransform}
+    Enmap{eltype(A),ndims(A),A,W}(data, wcs)
 end
 
 struct NoWCS end
@@ -34,13 +25,34 @@ Base.parent(x::Enmap) = x.data
 getwcs(x::Enmap) = x.wcs
 getwcs(x) = NoWCS()
 
-# retrieve nonallocating WCS information. returns tuples of cdelt, crval, crpix
-cdelt(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :cdelt), 1), 
-    unsafe_load(WCS.getfield(wcs, :cdelt), 2)
-crval(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :crval), 1), 
-    unsafe_load(WCS.getfield(wcs, :crval), 2)
-crpix(wcs::WCSTransform) = unsafe_load(WCS.getfield(wcs, :crpix), 1), 
-    unsafe_load(WCS.getfield(wcs, :crpix), 2)
+# retrieve nonallocating WCS information. returns tuples of cdelt, crpix, crval
+function unsafe_wcs_read_pair(wcs, sym::Symbol)
+    field = WCS.getfield(wcs, sym)
+    return unsafe_load(field, 1), unsafe_load(field, 2)
+end
+cdelt(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :cdelt)
+crpix(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crpix)
+crval(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crval)
+
+"""
+Fast custom WCS structure.
+"""
+struct CarClenshawCurtis{T} <: AbstractWCSTransform
+    cdelt::Tuple{T,T}
+    crpix::Tuple{T,T}
+    crval::Tuple{T,T}
+    unit::T  # conversion factor to radians
+end
+get_unit(T::Type{<:Real}, wcs::CarClenshawCurtis) = T(wcs.unit)
+cdelt(wcs::CarClenshawCurtis) = wcs.cdelt
+crpix(wcs::CarClenshawCurtis) = wcs.crpix
+crval(wcs::CarClenshawCurtis) = wcs.crval
+
+Base.copy(w::W) where {W<:CarClenshawCurtis} = w  # CarClenshawCurtis is fully immutable
+
+function Base.convert(::Type{CarClenshawCurtis{T}}, w0::WCSTransform) where T
+    return CarClenshawCurtis{T}(T.(cdelt(w0)), T.(crpix(w0)), T.(crval(w0)), get_unit(T, w0))
+end
 
 
 # forward all array traits to parent. based on MetaArrays
@@ -77,19 +89,19 @@ function Base.similar(x::Enmap, ::Type{S}, dims::NTuple{<:Any,Int}) where {S}
 end
 
 enmapwrap(x::Enmap{T}, val::T, i...) where {T} = val
-function enmapwrap(x::Enmap{T,N,AA,P}, val::AbstractArray{T,N}, i...) where {T,N,AA,P} 
+function enmapwrap(x::Enmap{T,N,AA,W}, val::AbstractArray{T,N}, i...) where {T,N,AA,W} 
     new_shape, new_wcs = slice_geometry(x, i...)
-    Enmap{T,N,AA,P}(val, new_wcs)
+    Enmap{T,N,AA,W}(val, new_wcs)
 end
 
 # if array slicing ends up changing dimension, follow the parent
-function enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}}
+function enmapwrap(x::Enmap{T,N,AA,W}, val::AAV, i...) where {T,N,AA,W,NV,AAV<:AbstractArray{T,NV}}
     new_shape, new_wcs = slice_geometry(x, i...)
-    Enmap{T,NV,AAV,P}(val, new_wcs)
+    Enmap{T,NV,AAV,W}(val, new_wcs)
 end
 
-enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} = val
-enmapwrap(x::Enmap{T,N,AA,P}, val::AAV, i1, i2::Int, i...) where {T,N,AA,P,NV,AAV<:AbstractArray{T,NV}} = val
+enmapwrap(x::Enmap{T,N,AA,W}, val::AAV, i1::Int, i...) where {T,N,AA,W,NV,AAV<:AbstractArray{T,NV}} = val
+enmapwrap(x::Enmap{T,N,AA,W}, val::AAV, i1, i2::Int, i...) where {T,N,AA,W,NV,AAV<:AbstractArray{T,NV}} = val
 enmapwrap(x, val, i...) = error("Unexpected result type $(typeof(val)).")
 
 Base.strides(x::Enmap) = strides(parent(x))
@@ -122,7 +134,7 @@ enmapstyle(x::Broadcast.Unknown) = x
 combine(x::NoWCS, y) = copy(y)
 combine(x, y::NoWCS) = copy(x)
 combine(x::NoWCS, ::NoWCS) = x
-combine(x::WCSTransform, y::WCSTransform) = copy(x)  # TODO: check compatibility
+combine(x::AbstractWCSTransform, y::AbstractWCSTransform) = copy(x)  # TODO: check compatibility
 
 
 ####
@@ -192,7 +204,7 @@ Base.deepcopy(x::Enmap) = Enmap(deepcopy(parent(x)), deepcopy(getwcs(x)))
 
 # internal function for getting the unit of the angles in the WCS header
 # multiply the result of this function with your angle to get radians.
-get_unit(wcs::WCSTransform) = get_unit(Float64, wcs)
+get_unit(wcs::AbstractWCSTransform) = get_unit(Float64, wcs)
 function get_unit(T::Type{<:Real}, wcs::WCSTransform)
     cunit1, cunit2 = wcs.cunit
     @assert cunit1 == cunit2 "Units of RA and DEC must be the same."

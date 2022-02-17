@@ -4,14 +4,14 @@ import Pixell: degree, arcminute
 
 @testset "Enmap geometry" begin
     shape, wcs = fullsky_geometry(deg2rad(1 / 60))
-    @test wcs.cdelt ≈ [-0.016666666666666666, 0.016666666666666666]
-    @test wcs.crpix ≈ [10800.5, 5401.0]
-    @test wcs.crval ≈ [0.008333333333333333, 0.0]
+    @test collect(wcs.cdelt) ≈ [-0.016666666666666666, 0.016666666666666666]
+    @test collect(wcs.crpix) ≈ [10800.5, 5401.0]
+    @test collect(wcs.crval) ≈ [0.008333333333333333, 0.0]
 
     shape, wcs = fullsky_geometry(deg2rad(1 / 61))
-    @test wcs.cdelt ≈ [-0.01639344262295082, 0.01639344262295082]
-    @test wcs.crpix ≈ [10980.5, 5491.0]
-    @test wcs.crval ≈ [0.00819672131147541, 0.0]
+    @test collect(wcs.cdelt) ≈ [-0.01639344262295082, 0.01639344262295082]
+    @test collect(wcs.crpix) ≈ [10980.5, 5491.0]
+    @test collect(wcs.crval) ≈ [0.00819672131147541, 0.0]
 
     shape, wcs = fullsky_geometry(deg2rad(5); dims=(3,))
     @test shape == (72, 37, 3)
@@ -20,27 +20,27 @@ import Pixell: degree, arcminute
            -5    5] * degree  # DEC
     shape, wcs = geometry(CarClenshawCurtis, box, 0.5 * arcminute)
     @test shape == (2400, 1200)
-    @test wcs.cdelt ≈ [-0.008333333333333333,  0.008333333333333333]
-    @test wcs.crpix == [1201, 601]
-    @test wcs.crval == [0.0, 0.0]
+    @test collect(wcs.cdelt) ≈ [-0.008333333333333333,  0.008333333333333333]
+    @test collect(wcs.crpix) == [1201, 601]
+    @test collect(wcs.crval) == [0.0, 0.0]
 
     box = [11  -10;           # RA
            -6    5] * degree  # DEC
     shape, wcs = geometry(CarClenshawCurtis, box, 0.5 * arcminute)
     @test shape == (2520, 1320)
-    @test wcs.cdelt ≈ [-0.008333333333333333,  0.008333333333333333]
-    @test wcs.crpix ≈ [1261, 721]
-    @test wcs.crval ≈ [0.5, 0.0]
+    @test collect(wcs.cdelt) ≈ [-0.008333333333333333,  0.008333333333333333]
+    @test collect(wcs.crpix) ≈ [1261, 721]
+    @test collect(wcs.crval) ≈ [0.5, 0.0]
 
     box = [10   -4;           # RA
            -3    5] * degree  # DEC
     shape, wcs = geometry(CarClenshawCurtis, box, 0.5 * arcminute)
     @test shape == (1680, 960)
-    @test wcs.crpix ≈ [841, 361]
-    @test wcs.crval ≈ [3.0, 0.0]
+    @test collect(wcs.crpix) ≈ [841, 361]
+    @test collect(wcs.crval) ≈ [3.0, 0.0]
 end
 
-
+##
 wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
 @testset "Enmap sky2pix and pix2sky" begin
     shape, wcs = fullsky_geometry(deg2rad(1))
@@ -59,17 +59,18 @@ wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
     # check our custom implementations
     pixcoords = π .* rand(2, 1024)
     skycoords = pix2sky(m, pixcoords; safe=false)
-    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords) .* (π/180)
+    shape, wcs_generic = fullsky_geometry(Pixell.WCS.WCSTransform, deg2rad(1))
+    @test skycoords ≈ Pixell.WCS.pix_to_world(wcs_generic, pixcoords) .* (π/180)
     skycoords .= 0.0
     pix2sky!(m, pixcoords, skycoords; safe=false)
-    @test skycoords ≈ Pixell.WCS.pix_to_world(Pixell.getwcs(m), pixcoords) .* (π/180)
+    @test skycoords ≈ Pixell.WCS.pix_to_world(wcs_generic, pixcoords) .* (π/180)
     
     skycoords = π .* rand(2, 1024)
     pixcoords = sky2pix(m, skycoords; safe=false)
-    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords .* (180/π))
+    @test pixcoords ≈ Pixell.WCS.world_to_pix(wcs_generic, skycoords .* (180/π))
     pixcoords .= 0.0
     sky2pix!(m, skycoords, pixcoords; safe=false)
-    @test pixcoords ≈ Pixell.WCS.world_to_pix(Pixell.getwcs(m), skycoords .* (180/π))
+    @test pixcoords ≈ Pixell.WCS.world_to_pix(wcs_generic, skycoords .* (180/π))
 
     box = [10   -10;           # RA
            -5     5] * degree  # DEC
@@ -148,9 +149,9 @@ end
 ## 
 @testset "nonallocating WCS info utilities" begin
     shape, wcs = fullsky_geometry(deg2rad(1))
-    @test all(Pixell.crpix(wcs) .== wcs.crpix)
-    @test all(Pixell.crval(wcs) .== wcs.crval)
-    @test all(Pixell.cdelt(wcs) .== wcs.cdelt)
+    @test all(Pixell.crpix(wcs) .== collect(wcs.crpix))
+    @test all(Pixell.crval(wcs) .== collect(wcs.crval))
+    @test all(Pixell.cdelt(wcs) .== collect(wcs.cdelt))
 end
 
 ## 
@@ -158,31 +159,31 @@ end
     shape0, wcs0 = fullsky_geometry(deg2rad(1))
     shape, wcs = slice_geometry(shape0, wcs0, 1:3, 11:-1:3)
     @test (3, 9) == shape
-    @test [-1.0, -1.0] ≈ wcs.cdelt
-    @test [180.5, -79.0] ≈ wcs.crpix
-    @test [0.5, 0.0] ≈ wcs.crval
+    @test [-1.0, -1.0] ≈ collect(wcs.cdelt)
+    @test [180.5, -79.0] ≈ collect(wcs.crpix)
+    @test [0.5, 0.0] ≈ collect(wcs.crval)
 
     shape, wcs = slice_geometry(shape0, wcs0, 2:shape0[1], 6:11)
     @test (359, 6) == shape
-    @test [-1.0, 1.0] ≈ wcs.cdelt
-    @test [179.5, 86.0] ≈ wcs.crpix
-    @test [0.5, 0.0] ≈ wcs.crval
+    @test [-1.0, 1.0] ≈ collect(wcs.cdelt)
+    @test [179.5, 86.0] ≈ collect(wcs.crpix)
+    @test [0.5, 0.0] ≈ collect(wcs.crval)
 
     shape, wcs = slice_geometry(shape0, wcs0, 2:2:(shape0[1]-1),1:11)
     @test (179, 11) == shape
-    @test [-2.0, 1.0] ≈ wcs.cdelt
-    @test [90.0, 91.0] ≈ wcs.crpix
-    @test [0.5, 0.0] ≈ wcs.crval
+    @test [-2.0, 1.0] ≈ collect(wcs.cdelt)
+    @test [90.0, 91.0] ≈ collect(wcs.crpix)
+    @test [0.5, 0.0] ≈ collect(wcs.crval)
 
     shape, wcs = slice_geometry(shape0, wcs0, 23:-4:6, 1:3:28)
     @test (5, 10) == shape
-    @test [4.0, 3.0] ≈ wcs.cdelt
-    @test [-38.75, 30.666666666666668] ≈ wcs.crpix
-    @test [0.5, 0.0] ≈ wcs.crval
+    @test [4.0, 3.0] ≈ collect(wcs.cdelt)
+    @test [-38.75, 30.666666666666668] ≈ collect(wcs.crpix)
+    @test [0.5, 0.0] ≈ collect(wcs.crval)
 
     shape, wcs = slice_geometry(shape0, wcs0, 3:3, 1:3:28)
     @test (1, 10) == shape
-    @test [-1.0, 3.0] ≈ wcs.cdelt
-    @test [178.5, 30.666666666666668] ≈ wcs.crpix
-    @test [0.5, 0.0] ≈ wcs.crval
+    @test [-1.0, 3.0] ≈ collect(wcs.cdelt)
+    @test [178.5, 30.666666666666668] ≈ collect(wcs.crpix)
+    @test [0.5, 0.0] ≈ collect(wcs.crval)
 end
