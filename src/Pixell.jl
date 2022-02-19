@@ -8,10 +8,14 @@ using Printf
 import Unitful, UnitfulAngles
 import Unitful: uconvert, ustrip
 using DSP: unwrap, unwrap!
+import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights
+using Libsharp
+import Healpix: Alm
 
 include("enmap.jl")
 include("enmap_geom.jl")
 include("enmap_ops.jl")
+include("transforms.jl")
 
 export Enmap, CarClenshawCurtis, getwcs
 export geometry, fullsky_geometry, slice_geometry
