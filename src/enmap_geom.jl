@@ -1,11 +1,42 @@
 
+
+# abstract type AbstractMapProjection end
+# abstract type EquiCylProjection <: AbstractMapProjection end  # equidistant cylindrical projection
+# abstract type CarProjection <: EquiCylProjection end          # plate carrée
+
+# struct CarClenshawCurtis{W} <: CarProjection end      # plate carrée with pixels on poles and equator
+# CarClenshawCurtis() = CarClenshawCurtis{CarClenshawCurtis}
+# CarClenshawCurtis(::Type{W}) where {W <: AbstractWCSTransform} = CarClenshawCurtis{W}
+
+
+function create_car_wcs(::Type{WCSTransform}, cdelt, crpix, crval)
+    wcs = WCSTransform(2;
+        ctype = ["RA---CAR", "DEC--CAR"],
+        cdelt = collect(cdelt),
+        crpix = collect(crpix),
+        crval = collect(crval))
+
+    return wcs
+end
+
+# try to follow WCS.WCSTransform with degree units
+function create_car_wcs(::Type{CarClenshawCurtis{T}}, cdelt, crpix, crval) where T
+    return CarClenshawCurtis{T}(
+        (cdelt[1], cdelt[2]), 
+        (crpix[1], crpix[2]), 
+        (crval[1], crval[2]), 
+        π/180)  # degree conversion
+end
+create_car_wcs(::Type{CarClenshawCurtis}, cdelt, crpix, crval) = 
+    create_car_wcs(CarClenshawCurtis{Float64}, cdelt, crpix, crval)
+
 """
-fullsky_geometry([P=CarClenshawCurtis], res; shape = nothing, dims = ())
+fullsky_geometry([W=CarClenshawCurtis], res; shape = nothing, dims = ())
 
 Generates a full-sky geometry.
 
 # Arguments:
-- `proj=CarClenshawCurtis`: [optional] projection
+- `proj=CarClenshawCurtis()`: [optional] projection
 - `res`: resolution in radians. Passing a Number produces a square pixel.
 Passing a tuple with (ΔRA, ΔDEC) produces a rectangular pixel.
 
@@ -15,7 +46,7 @@ Passing a tuple with (ΔRA, ΔDEC) produces a rectangular pixel.
 to generate a map with `(nx, ny, 3)`.
 
 # Returns: 
-- `shape::Tuple, wcs::WCSTransform`: a tuple containing the shape of the map and the WCS
+- `shape::Tuple, wcs::W`: a tuple containing the shape of the map and the WCS
 
 # Examples
 ```julia-repl
@@ -23,7 +54,7 @@ julia> shape, wcs = fullsky_geometry(deg2rad(30/60))  # 30 arcmin pixel
 ((720, 361), WCSTransform(naxis=2,cdelt=[-0.5, 0.5],crval=[0.25, 0.0],crpix=[360.5, 181.0]))
 ```
 """
-function fullsky_geometry(::Type{<:CarClenshawCurtis}, res; shape = nothing, dims = ())
+function fullsky_geometry(W::Type{<:AbstractWCSTransform}, res; shape = nothing, dims = ())
     if isnothing(shape)
         shape = (round.(Int, (2π, π) ./ res .+ (0, 1)))  # CAR has pixels on poles
     end
@@ -36,23 +67,24 @@ function fullsky_geometry(::Type{<:CarClenshawCurtis}, res; shape = nothing, dim
 
     # Note the reference point is shifted by half a pixel to keep
     # the grid in bounds, from ra=180+cdelt/2 to ra=-180+cdelt/2.
-    wcs = WCSTransform(2;
-        cdelt = [-360.0 / nx, 180.0 / (ny - 1)],
-        ctype = ["RA---CAR", "DEC--CAR"],
-        crpix = [floor(nx / 2) + 0.5, (ny + 1) / 2],
-        crval = [resy * 90 / π, 0])
+    wcs = create_car_wcs(W,  
+        (-360.0 / nx, 180.0 / (ny - 1)),      # cdelt
+        (floor(nx / 2) + 0.5, (ny + 1) / 2),  # crpix
+        (resy * 90 / π, 0.0)                  # crval
+    )
 
     return (nx, ny, dims...), wcs
 end
 
-fullsky_geometry(proj::Type{<:CarClenshawCurtis}, res::Number; shape = nothing, dims = ()) =
-    fullsky_geometry(proj, (res, res); shape = shape, dims = dims)
+fullsky_geometry(W::Type{<:AbstractWCSTransform}, res::Number; shape = nothing, dims = ()) =
+    fullsky_geometry(W, (res, res); shape = shape, dims = dims)
 
 fullsky_geometry(res; shape = nothing, dims = ()) =
-    fullsky_geometry(CarClenshawCurtis, res; shape = shape, dims = dims)
+    fullsky_geometry(CarClenshawCurtis{Float64}, res; shape = shape, dims = dims)
 
 
-function geometry(::Type{<:CarClenshawCurtis}, bbox_coords, res)
+# ONLY DOES CAR FOR NOW
+function geometry(W::Type{<:AbstractWCSTransform}, bbox_coords, res)
 
     # get everything into radians
     res_in_radians = ustrip.(uconvert.(radian, res))
@@ -70,19 +102,17 @@ function geometry(::Type{<:CarClenshawCurtis}, bbox_coords, res)
 
     # set up coordinates such that the [1, 1] coordinate is the first pos of bbox
     mid = (pos1 .+ pos2) ./ 2
-    crval = [mid[1], 0.0]
+    crval = (mid[1], 0.0)
     cdelt = abs.(res_in_radians) .* sign.(pos2 .- pos1)
     crpix = 1 .- (pos1 .- crval) ./ cdelt
 
-    # WCS is in degrees by default, now we have to convert every angle
-    wcs = WCSTransform(2;
-        cdelt = rad2deg.(cdelt),
-        ctype = ["RA---CAR", "DEC--CAR"],
-        crpix = crpix,
-        crval = rad2deg.(crval))
+    wcs = create_car_wcs(W,  
+        rad2deg.(cdelt),  # cdelt
+        crpix,            # crpix
+        rad2deg.(crval))  # crval
 
     return shape, wcs
 end
 
-geometry(proj::Type{<:CarClenshawCurtis}, bbox_coords, res::Number) = 
-    geometry(proj, bbox_coords, (res, res))
+geometry(W::Type{<:AbstractWCSTransform}, bbox_coords, res::Number) = 
+    geometry(W, bbox_coords, (res, res))

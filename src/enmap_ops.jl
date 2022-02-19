@@ -107,6 +107,10 @@ function sky2pix!(m::Enmap{T}, skycoords, pixcoords; safe=true) where T
     end
     return pixcoords
 end
+pix2sky(m::Enmap{T,N,AA,<:WCSTransform}, ra::Number, dec::Number; safe=true) where {T,N,AA} = 
+    pix2sky(m, [ra, dec]; safe=safe)
+sky2pix(m::Enmap{T,N,AA,<:WCSTransform}, ra::Number, dec::Number; safe=true) where {T,N,AA} = 
+    sky2pix(m, [ra, dec]; safe=safe)
 
 """
     pix2sky!(m::Enmap, pixcoords, skycoords)
@@ -133,7 +137,7 @@ julia> shape, wcs = fullsky_geometry(deg2rad(1))
 julia> pix2sky!(m, pixcoords, skycoords)
 ```
 """
-function pix2sky!(m::Enmap{T,N,AA,CarClenshawCurtis},
+function pix2sky!(m::Enmap{T,N,AA,<:CarClenshawCurtis},
     pixcoords::AbstractArray{TP,2}, skycoords::AbstractArray{TS,2}; safe=true
 ) where {T,N,AA<:AbstractArray{T,N},TP,TS}
 
@@ -162,19 +166,19 @@ function pix2sky!(m::Enmap{T,N,AA,CarClenshawCurtis},
 end
 
 # the not-in-place version just creates an output array and calls the in-place one above
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, pixcoords::AbstractArray{TP,2}; safe=true
+function pix2sky(m::Enmap{T,N,AA,<:CarClenshawCurtis}, pixcoords::AbstractArray{TP,2}; safe=true
 ) where {T,N,AA<:AbstractArray{T,N},TP}
     skycoords = similar(pixcoords)
     return pix2sky!(m, pixcoords, skycoords; safe=safe)
 end
 
 """
-    pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, ra_pixel, dec_pixel)
+    pix2sky(m::Enmap{T,N,AA,<:CarClenshawCurtis}, ra_pixel, dec_pixel)
 
 Compute the sky position of a single position on the sky.
 
 Only implemented for CAR (Clenshaw-Curtis variant) projections, so
-the input map is of type `Enmap{T,N,AA,CarClenshawCurtis}`.
+the input map is of type `Enmap{T,N,AA,<:CarClenshawCurtis}`.
 This takes pixel indices for RA and DEC, and returns a tuple containing
 the corresponding RA and DEC.
 
@@ -186,7 +190,7 @@ julia> pix2sky(m, 30.0, 80.0)
 (151.0, -11.0)
 ```
 """
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+function pix2sky(m::Enmap{T,N,AA,<:CarClenshawCurtis}, 
                  ra_pixel, dec_pixel; safe=true) where {T,N,AA<:AbstractArray{T,N}}
     wcs_m = getwcs(m)
     angle_unit = get_unit(T, wcs_m)
@@ -202,7 +206,7 @@ function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis},
 end
 
 # when passing a length-2 vector [ra, dec], return a vector. wraps the pix2sky(m, ra_pix, dec_pix)
-function pix2sky(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+function pix2sky(m::Enmap{T,N,AA,<:CarClenshawCurtis}, 
                  pixcoords::AbstractVector; safe=true) where {T,N,AA<:AbstractArray{T,N}}
     @assert length(pixcoords) == 2
     skycoords = collect(pix2sky(m, first(pixcoords), last(pixcoords)))
@@ -263,7 +267,7 @@ julia> shape, wcs = fullsky_geometry(deg2rad(1))
 julia> sky2pix!(m, skycoords, pixcoords)
 ```
 """
-function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{TS,2}, 
+function sky2pix!(m::Enmap{T,N,AA,<:CarClenshawCurtis}, skycoords::AbstractArray{TS,2}, 
                   pixcoords::AbstractArray{TP,2}; safe=true) where {T,N,AA<:AbstractArray{T,N},TS,TP}
 
     # retrieve WCS info
@@ -295,7 +299,7 @@ function sky2pix!(m::Enmap{T,N,AA,CarClenshawCurtis}, skycoords::AbstractArray{T
 end
 
 # the not-in-place version just creates an output array and calls the in-place one above
-function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+function sky2pix(m::Enmap{T,N,AA,<:CarClenshawCurtis}, 
                  skycoords::AbstractArray{TS,2}; safe=true) where {T,N,AA<:AbstractArray{T,N},TS}
     pixcoords = similar(skycoords)
     return sky2pix!(m, skycoords, pixcoords; safe=safe)
@@ -303,7 +307,7 @@ end
 
 
 """
-    sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, ra, dec)
+    sky2pix(m::Enmap{T,N,AA,<:CarClenshawCurtis}, ra, dec)
 
 Compute 1-indexed pixels into sky coordinates.
 
@@ -320,7 +324,7 @@ julia> sky2pix(m, 30.0, 80.0)
 (151.0, 171.0)
 ```
 """
-function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+function sky2pix(m::Enmap{T,N,AA,<:CarClenshawCurtis}, 
                  ra::Number, dec::Number; safe=true) where {T,N,AA<:AbstractArray{T,N}}
     wcs_m = getwcs(m)
     angle_unit = get_unit(T, wcs_m)
@@ -337,7 +341,7 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
     end
     return pix_ra, pix_dec
 end
-function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis}, 
+function sky2pix(m::Enmap{T,N,AA,<:CarClenshawCurtis}, 
                  ra::AV, dec::AV; safe=true) where {T,N,AA<:AbstractArray{T,N}, AV<:AbstractVector}
     wcs_m = getwcs(m)
     angle_unit = get_unit(T, wcs_m)
@@ -358,7 +362,7 @@ function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
 end
 
 # when passing a vector [ra, dec], return a vector. wraps the sky2pix(m, ra, dec).
-function sky2pix(m::Enmap{T,N,AA,CarClenshawCurtis},
+function sky2pix(m::Enmap{T,N,AA,<:CarClenshawCurtis},
                  skycoords::AbstractVector; safe=true) where {T,N,AA<:AbstractArray{T,N}}
     @assert length(skycoords) == 2
     return collect(sky2pix(m, first(skycoords), last(skycoords); safe=safe))
@@ -387,10 +391,21 @@ function slice_geometry(shape_all::Tuple, wcs, sel_x, sel_y, sel_others...)
     crpix′ = (crpix(wcs) .- (starts .+ 0.5)) ./ steps .+ 0.5
     cdelt′ = cdelt(wcs) .* steps
     shape = sel_sizes .÷ steps
+    wcs′ = recreate_sliced_wcs(wcs, cdelt′, crpix′)
 
-    wcs′ = deepcopy(wcs)
-    wcs′.cdelt = collect(cdelt′)
-    wcs′.crpix = collect(crpix′)
     return (shape..., other_dims...), wcs′
 end
 slice_geometry(m::Enmap, sel_all::Vararg) = slice_geometry(size(m), getwcs(m), sel_all...)
+
+
+function recreate_sliced_wcs(wcs::WCSTransform, cdelt′, crpix′)
+    new_wcs = deepcopy(wcs)
+    new_wcs.cdelt = collect(cdelt′)
+    new_wcs.crpix = collect(crpix′)
+    return new_wcs
+end
+
+function recreate_sliced_wcs(wcs::CarClenshawCurtis{T}, cdelt′, crpix′) where T
+    new_wcs = CarClenshawCurtis{T}(cdelt′, crpix′, wcs.crval, wcs.unit)
+    return new_wcs
+end
