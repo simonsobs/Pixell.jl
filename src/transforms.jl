@@ -1,10 +1,10 @@
 
 """Number of pixels in full CAR ring of this WCS."""
-ringsize(wcs::AbstractWCSTransform) = 
+fullringsize(wcs::AbstractWCSTransform) = 
     round(Int64, abs(2π / (get_unit(wcs) * cdelt(wcs)[1])))
 
 """Number of rings in a fullsky version of this WCS."""
-ringnum(wcs::AbstractWCSTransform) = 
+fullringnum(wcs::AbstractWCSTransform) = 
     1 + round(Int64, abs(π / (get_unit(wcs) * cdelt(wcs)[2])))
 
 """Get index of ring given angle"""
@@ -34,14 +34,14 @@ function make_cc_geom_info(shape, wcs₀::AbstractWCSTransform)
     _, wcs = slice_geometry(shape, wcs₀, flipx_slice, flipy_slice, shape[3:end])
     subinds = first_last_rings_in_fullsky(shape, wcs)
     @assert first(subinds) ≤ last(subinds)  # vertical angle must be increasing
-    nrings = ringnum(wcs)
-    ppring = ringsize(wcs)
+    nringstot = fullringnum(wcs)
+    ppring = fullringsize(wcs)
     phi0 = pix2sky(shape, wcs, 1, 2)[1]  # since RA = ϕ
 
     geom_info_ptr = Ref{Ptr{Cvoid}}()
-    μ = chebyshevjacobimoments1(Float64, nrings, 0.0, 0.0)
+    μ = chebyshevjacobimoments1(Float64, nringstot, 0.0, 0.0)
     weights = Cdouble.(clenshawcurtisweights(μ)[subinds] .* 2π ./ ppring)
-    theta = Cdouble.(range(0, π, length=nrings)[subinds])
+    theta = Cdouble.(range(0, π, length=nringstot)[subinds])
 
     # constant stuff
     nsubrings = length(subinds)
@@ -53,8 +53,8 @@ function make_cc_geom_info(shape, wcs₀::AbstractWCSTransform)
     ccall(
         (:sharp_make_geom_info, Libsharp.libsharp2),
         Cvoid,
-        (Cint, Ref{Cint}, Ref{Cptrdiff_t}, Ref{Cint}, Ref{Cdouble}, Ref{Cdouble}, Ref{Cdouble}, Ref{Ptr{Cvoid}}),
-        Cint(nrings),nph, offsets,         stride,    phi0s,         theta,        weights,      geom_info_ptr
+        (Cint,       Ref{Cint}, Ref{Cptrdiff_t}, Ref{Cint}, Ref{Cdouble}, Ref{Cdouble}, Ref{Cdouble}, Ref{Ptr{Cvoid}}),
+        Cint(nsubrings),nph,  offsets,           stride,    phi0s,         theta,        weights,      geom_info_ptr
     )
 
     GeomInfo(geom_info_ptr[])
@@ -66,24 +66,24 @@ function create_sht_band(m::Enmap)
     shape = size(m)
     flipx_slice, flipy_slice = get_flip_slices(shape, getwcs(m))
     _, wcs = slice_geometry(shape, getwcs(m), flipx_slice, flipy_slice, shape[3:end])
-    target_size = (ringsize(wcs), size(m,2))
+    target_size = (fullringsize(wcs), size(m,2))
     converted = Enmap(zeros(Float64, target_size), wcs)
     converted.data[1:shape[1],:] .= view(m.data, flipx_slice, flipy_slice)
     return converted
 end
 
 
-getlmax(wcs) = 3 * ringsize(wcs)
+getlmax(wcs) = 3 * fullringsize(wcs)
 
 """perform forward SHT of an intensity map"""
-function map2alm(m::Enmap{T,2}; lmax=nothing, mmax=lmax) where T
+function map2alm(input_map::Enmap{T,2}; lmax=nothing, mmax=lmax) where T
     if isnothing(lmax)
-        lmax = getlmax(getwcs(m))
+        lmax = getlmax(getwcs(input_map))
         mmax = lmax
     end
-    band = create_sht_band(m)
+    band = create_sht_band(input_map)
     alm_info = make_triangular_alm_info(lmax, mmax, 1)
-    geom_info = make_cc_geom_info(size(m), getwcs(m))
+    geom_info = make_cc_geom_info(size(band), getwcs(band))
     nalms = alm_count(alm_info)
     npix = map_size(geom_info)
     alm = Alm(lmax, mmax, zeros(ComplexF64, nalms))
