@@ -10,7 +10,7 @@ import Unitful: uconvert, ustrip
 using DSP: unwrap, unwrap!
 import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights
 using Libsharp
-import Healpix: Alm
+import Healpix: Alm, map2alm
 
 include("enmap.jl")
 include("enmap_geom.jl")
@@ -21,6 +21,7 @@ export Enmap, CarClenshawCurtis, getwcs
 export geometry, fullsky_geometry, slice_geometry
 export pix2sky, pix2sky!, sky2pix, sky2pix!
 export read_map, write_map
+export Alm, map2alm
 
 # set up some shortcuts for common angles
 const radian = Unitful.rad
