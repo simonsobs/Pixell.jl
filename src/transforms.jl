@@ -57,7 +57,7 @@ function make_cc_geom_info(shape, wcs₀::AbstractWCSTransform)
         Cint(nsubrings),nph,  offsets,           stride,    phi0s,         theta,        weights,      geom_info_ptr
     )
 
-    GeomInfo(geom_info_ptr[])
+    return GeomInfo(geom_info_ptr[])
 end
 
 
@@ -87,12 +87,12 @@ function map2alm(input_map::Enmap{T,2}; lmax=nothing, mmax=lmax) where T
     nalms = alm_count(alm_info)
     npix = map_size(geom_info)
     alm = Alm(lmax, mmax, zeros(ComplexF64, nalms))
-    map1d = reshape(band.data, npix)
+    flat_map = reshape(band.data, npix)
 
     sharp_execute!(
         SHARP_MAP2ALM, 0, 
         [alm.alm], 
-        [map1d],
+        [flat_map],
         geom_info, alm_info, SHARP_DP
     )
     return alm
