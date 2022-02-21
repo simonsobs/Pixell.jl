@@ -1,15 +1,15 @@
 
 """Number of pixels in full CAR ring of this WCS."""
 fullringsize(wcs::AbstractWCSTransform) = 
-    round(Int64, abs(2π / (get_unit(wcs) * cdelt(wcs)[1])))
+    round(Int64, abs(2π / (getunit(wcs) * getcdelt(wcs)[1])))
 
 """Number of rings in a fullsky version of this WCS."""
 fullringnum(wcs::AbstractWCSTransform) = 
-    1 + round(Int64, abs(π / (get_unit(wcs) * cdelt(wcs)[2])))
+    1 + round(Int64, abs(π / (getunit(wcs) * getcdelt(wcs)[2])))
 
 """Get index of ring given angle"""
 function first_last_rings_in_fullsky(shape, wcs::AbstractWCSTransform)
-    Δδ = cdelt(wcs)[end] * get_unit(wcs)
+    Δδ = getcdelt(wcs)[end] * getunit(wcs)
     Δθ = abs(Δδ)
     δ₁ = pix2sky(shape, wcs, 1, 1)[end]
     δ₂ = pix2sky(shape, wcs, 1, shape[2])[end]
@@ -22,7 +22,7 @@ end
 
 # libsharp wants ascending colatitude (θ) and increasing right ascension (ϕ)
 function get_flip_slices(shape, wcs)
-    Δα, Δδ = cdelt(wcs) .* get_unit(wcs)
+    Δα, Δδ = getcdelt(wcs) .* getunit(wcs)
     flipx_slice = (Δα ≥ 0) ? (1:shape[1]) : (shape[1]:-1:1)
     flipy_slice = (Δδ ≤ 0) ? (1:shape[2]) : (shape[2]:-1:1)
     return flipx_slice, flipy_slice 

@@ -1,5 +1,4 @@
 
-## 
 @testset "Enmap slicing" begin
     shape0, wcs0 = fullsky_geometry(π/180)
     m = Enmap(rand(shape0...), wcs0)
@@ -29,6 +28,10 @@
     @test [36.1, -16.666666666666668] ≈ collect(wcs.crpix)
     @test [0.5, 0.0] ≈ collect(wcs.crval)
     @test (m.data)[3:5:24, 39:-3:2] ≈ m_sliced
+
+    # removing the first two axes 
+    @test typeof(m[1,:]) == Array{Float64,1}
+    @test typeof(m[:,1]) == Array{Float64,1}
 end
 
 ## 
@@ -129,4 +132,33 @@ end
     @test Pixell.getwcs(mv) != Pixell.NoWCS()
     mv = ma[1:5,:,:]
     @test Pixell.getwcs(mv) != Pixell.NoWCS()
+end
+
+@testset "Enmap WCS props" begin
+    shape, wcs = fullsky_geometry(π/180)
+    m = Enmap(zeros(shape), wcs)
+    @test stride(m,1) == 1
+    @test stride(m,2) == stride(m.data, 2)
+    
+    imap = read_map("data/test.fits")
+    @test Pixell.getunit(imap.wcs) ≈ π/180
+    @test sprint(show, imap.wcs) == "WCSTransform(naxis=2,cdelt=[-1.0, 1.0],crval=[0.5, 0.0],crpix=[180.5, 91.0])"
+
+    @test collect(Pixell.getcrval(imap.wcs)) == imap.wcs.crval
+    @test collect(Pixell.getcrpix(imap.wcs)) == imap.wcs.crpix
+    @test collect(Pixell.getcdelt(imap.wcs)) == imap.wcs.cdelt
+
+    wcs = convert(CarClenshawCurtis{Float64}, imap.wcs)
+    @test Pixell.getcrval(imap.wcs) == wcs.crval
+    @test Pixell.getcrpix(imap.wcs) == wcs.crpix
+    @test Pixell.getcdelt(imap.wcs) == wcs.cdelt
+
+    imap.wcs.cunit = ["rad", "rad"]
+    @test Pixell.getunit(imap.wcs) ≈ 1.0
+    imap.wcs.cunit = ["arcmin", "arcmin"]
+    @test Pixell.getunit(imap.wcs) ≈ π / 180 / 60
+    imap.wcs.cunit = ["arcsec", "arcsec"]
+    @test Pixell.getunit(imap.wcs) ≈ π / 180 / 60 / 60
+    imap.wcs.cunit = ["mas", "mas"]
+    @test Pixell.getunit(imap.wcs) ≈ π / 180 / 60 / 60 / 1000
 end
