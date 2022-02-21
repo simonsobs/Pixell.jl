@@ -24,3 +24,18 @@ imap = enmap.zeros(shape, wcs=wcs)
 gen_simple(imap, 2.5)
 alms = curvedsky.map2alm(imap, lmax=100, method="auto")
 np.savetxt("data/simple_box_analytic_sht.txt", np.column_stack([alms.real, alms.imag]), fmt='%.60g')
+
+
+# spin 2 tests
+shape, wcs = enmap.fullsky_geometry(5.0*utils.degree, dims=(2,))
+qumap = enmap.zeros(shape, wcs=wcs)
+for i in range(qumap.shape[-2]):
+    for j in range(qumap.shape[-1]):
+        qumap[0,i,j] = (i+1)*(j+1)**2
+        qumap[1,i,j] = (i+1)*(j+1)
+alm_e, alm_b = curvedsky.map2alm(qumap, lmax=3 * 36, spin=2, method="cyl")
+np.savetxt("data/simple_pol_analytic_sht.txt", 
+    np.column_stack([alm_e.real, alm_e.imag, alm_b.real, alm_b.imag]), fmt='%.60g')
+
+
+# %%

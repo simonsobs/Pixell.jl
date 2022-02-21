@@ -20,6 +20,7 @@ function first_last_rings_in_fullsky(shape, wcs::AbstractWCSTransform)
     return i1:i2
 end
 
+# libsharp wants ascending colatitude (θ) and increasing right ascension (ϕ)
 function get_flip_slices(shape, wcs)
     Δα, Δδ = cdelt(wcs) .* get_unit(wcs)
     flipx_slice = (Δα ≥ 0) ? (1:shape[1]) : (shape[1]:-1:1)
