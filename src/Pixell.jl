@@ -10,6 +10,7 @@ import Unitful: uconvert, ustrip
 using DSP: unwrap, unwrap!
 import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights
 using Libsharp
+import Libsharp: sharp_execute!
 import Healpix: Alm, map2alm
 
 include("enmap.jl")

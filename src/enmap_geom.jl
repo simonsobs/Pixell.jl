@@ -31,7 +31,7 @@ create_car_wcs(::Type{CarClenshawCurtis}, cdelt, crpix, crval) =
     create_car_wcs(CarClenshawCurtis{Float64}, cdelt, crpix, crval)
 
 """
-fullsky_geometry([W=CarClenshawCurtis], res; shape = nothing, dims = ())
+    fullsky_geometry([W=CarClenshawCurtis], res; shape = nothing, dims = ())
 
 Generates a full-sky geometry.
 

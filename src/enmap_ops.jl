@@ -70,7 +70,7 @@ sky2pix!(m::Enmap, p1, p2; safe=true) = sky2pix!(size(m), getwcs(m), p1, p2; saf
 ## If you wanted to replicate Pixell behavior, add 1 to x and y of pixcoords.
 ## We implement custom routines for CAR (Clenshaw-Curtis variant) instead of using these.
 function pix2sky(shape, wcs::WCSTransform, pixcoords; safe=true)
-    angle_unit = get_unit(wcs)
+    angle_unit = getunit(wcs)
     skycoords = pix_to_world(wcs, pixcoords) .* angle_unit
     if safe
         return unwind(skycoords; dims=2)
@@ -78,7 +78,7 @@ function pix2sky(shape, wcs::WCSTransform, pixcoords; safe=true)
     return skycoords
 end
 function pix2sky!(shape, wcs::WCSTransform, pixcoords, skycoords; safe=true)
-    angle_unit = get_unit(wcs)
+    angle_unit = getunit(wcs)
     pix_to_world!(wcs, pixcoords, skycoords)
     skycoords .*= angle_unit
     if safe
@@ -87,24 +87,24 @@ function pix2sky!(shape, wcs::WCSTransform, pixcoords, skycoords; safe=true)
     return skycoords
 end
 function sky2pix(shape, wcs::WCSTransform, skycoords; safe=true)
-    angle_unit = get_unit(wcs)
+    angle_unit = getunit(wcs)
     inverse_angle_unit = 1 / angle_unit
     pixcoords = world_to_pix(wcs, skycoords .* inverse_angle_unit)
     if safe
         center_pix = shape[begin:begin+1] ./ 2 .+ 1
-        pix_periods = abs.(2π ./ (cdelt(wcs) .* angle_unit))
+        pix_periods = abs.(2π ./ (getcdelt(wcs) .* angle_unit))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
     end
     return pixcoords
 end
 function sky2pix!(shape, wcs::WCSTransform, skycoords, pixcoords; safe=true)
-    angle_unit = get_unit(wcs)
+    angle_unit = getunit(wcs)
     inverse_angle_unit = 1 / angle_unit
-    world_to_pix!(getwcs(m), skycoords .* inverse_angle_unit, pixcoords)
+    world_to_pix!(wcs, skycoords .* inverse_angle_unit, pixcoords)
     if safe
         center_pix = shape[begin:begin+1] ./ 2 .+ 1
-        pix_periods = abs.(2π ./ (cdelt(wcs) .* angle_unit))
+        pix_periods = abs.(2π ./ (getcdelt(wcs) .* angle_unit))
         rewind!(view(pixcoords, 1, :); period=pix_periods[1], ref_angle=center_pix[1])
         rewind!(view(pixcoords, 2, :); period=pix_periods[2], ref_angle=center_pix[2])
     end
@@ -142,10 +142,10 @@ julia> pix2sky!(shape, wcs, pixcoords, skycoords)
 function pix2sky!(shape, wcs::CarClenshawCurtis, pixcoords::AbstractArray{TP,2}, 
                   skycoords::AbstractArray{TS,2}; safe=true) where {TP,TS}
 
-    angle_unit = get_unit(wcs)
-    α₀, δ₀ = crval(wcs) .* angle_unit
-    Δα, Δδ = cdelt(wcs) .* angle_unit
-    iα₀, iδ₀ = crpix(wcs)
+    angle_unit = getunit(wcs)
+    α₀, δ₀ = getcrval(wcs) .* angle_unit
+    Δα, Δδ = getcdelt(wcs) .* angle_unit
+    iα₀, iδ₀ = getcrpix(wcs)
 
     # compute RA (α) and DEC (δ)
     @inbounds for ipix ∈ axes(pixcoords, 2)
@@ -189,10 +189,10 @@ julia> pix2sky(shape, wcs, 30.0, 80.0)
 ```
 """
 function pix2sky(shape, wcs::CarClenshawCurtis, ra_pixel, dec_pixel; safe=true)
-    angle_unit = get_unit(wcs)
-    α₀, δ₀ = crval(wcs) .* angle_unit
-    Δα, Δδ = cdelt(wcs) .* angle_unit
-    iα₀, iδ₀ = crpix(wcs)
+    angle_unit = getunit(wcs)
+    α₀, δ₀ = getcrval(wcs) .* angle_unit
+    Δα, Δδ = getcdelt(wcs) .* angle_unit
+    iα₀, iδ₀ = getcrpix(wcs)
     α = α₀ .+ (ra_pixel .- iα₀) .* Δα
     δ = δ₀ .+ (dec_pixel .- iδ₀) .* Δδ
     if safe
@@ -264,10 +264,10 @@ function sky2pix!(shape, wcs::CarClenshawCurtis, skycoords::AbstractArray{TS,2},
                   pixcoords::AbstractArray{TP,2}; safe=true) where {TS,TP}
 
     # retrieve WCS info
-    angle_unit = get_unit(wcs)
-    α₀, δ₀ = crval(wcs) .* angle_unit
-    Δα, Δδ = cdelt(wcs) .* angle_unit
-    iα₀, iδ₀ = crpix(wcs)
+    angle_unit = getunit(wcs)
+    α₀, δ₀ = getcrval(wcs) .* angle_unit
+    Δα, Δδ = getcdelt(wcs) .* angle_unit
+    iα₀, iδ₀ = getcrpix(wcs)
     Δα⁻¹, Δδ⁻¹ = 1 / Δα, 1 / Δδ
 
     # compute RA (α) index and DEC (δ) index
@@ -316,10 +316,10 @@ julia> sky2pix(shape, wcs, 30.0, 80.0)
 ```
 """
 function sky2pix(shape, wcs::CarClenshawCurtis, ra::Number, dec::Number; safe=true)
-    angle_unit = get_unit(wcs)
-    α₀, δ₀ = crval(wcs) .* angle_unit
-    Δα, Δδ = cdelt(wcs) .* angle_unit
-    iα₀, iδ₀ = crpix(wcs)
+    angle_unit = getunit(wcs)
+    α₀, δ₀ = getcrval(wcs) .* angle_unit
+    Δα, Δδ = getcdelt(wcs) .* angle_unit
+    iα₀, iδ₀ = getcrpix(wcs)
     pix_ra = iα₀ + (ra - α₀) / Δα
     pix_dec = iδ₀ + (dec - δ₀) / Δδ
 
@@ -332,10 +332,10 @@ function sky2pix(shape, wcs::CarClenshawCurtis, ra::Number, dec::Number; safe=tr
 end
 function sky2pix(shape, wcs::CarClenshawCurtis, 
                  ra::AV, dec::AV; safe=true) where {AV<:AbstractVector}
-    angle_unit = get_unit(wcs)
-    α₀, δ₀ = crval(wcs) .* angle_unit
-    Δα, Δδ = cdelt(wcs) .* angle_unit
-    iα₀, iδ₀ = crpix(wcs)
+    angle_unit = getunit(wcs)
+    α₀, δ₀ = getcrval(wcs) .* angle_unit
+    Δα, Δδ = getcdelt(wcs) .* angle_unit
+    iα₀, iδ₀ = getcrpix(wcs)
     Δα⁻¹, Δδ⁻¹ = 1 / Δα, 1 / Δδ
     pix_ra = iα₀ .+ (ra .- α₀) .* Δα⁻¹
     pix_dec = iδ₀ .+ (dec .- δ₀) .* Δδ⁻¹
@@ -376,24 +376,24 @@ function slice_geometry(shape_all::Tuple, wcs, sel_x, sel_y, sel_others...)
     starts = map(s -> (step(s) > 0) ? first(s) - 1 : first(s), sel)  # handle backward ranges too
     steps = step.(sel)
     sel_sizes = last.(sel) .- first.(sel) .+ steps
-    crpix′ = (crpix(wcs) .- (starts .+ 0.5)) ./ steps .+ 0.5
-    cdelt′ = cdelt(wcs) .* steps
+    crpix′ = (getcrpix(wcs) .- (starts .+ 0.5)) ./ steps .+ 0.5
+    cdelt′ = getcdelt(wcs) .* steps
     shape = sel_sizes .÷ steps
-    wcs′ = recreate_sliced_wcs(wcs, cdelt′, crpix′)
+    wcs′ = sliced_wcs(wcs, cdelt′, crpix′)
 
     return (shape..., other_dims...), wcs′
 end
 slice_geometry(m::Enmap, sel_all::Vararg) = slice_geometry(size(m), getwcs(m), sel_all...)
 
 
-function recreate_sliced_wcs(wcs::WCSTransform, cdelt′, crpix′)
+function sliced_wcs(wcs::WCSTransform, cdelt′, crpix′)
     new_wcs = deepcopy(wcs)
     new_wcs.cdelt = collect(cdelt′)
     new_wcs.crpix = collect(crpix′)
     return new_wcs
 end
 
-function recreate_sliced_wcs(wcs::CarClenshawCurtis{T}, cdelt′, crpix′) where T
+function sliced_wcs(wcs::CarClenshawCurtis{T}, cdelt′, crpix′) where T
     new_wcs = CarClenshawCurtis{T}(cdelt′, crpix′, wcs.crval, wcs.unit)
     return new_wcs
 end

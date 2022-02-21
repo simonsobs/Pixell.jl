@@ -30,9 +30,9 @@ function unsafe_wcs_read_pair(wcs, sym::Symbol)
     field = WCS.getfield(wcs, sym)
     return unsafe_load(field, 1), unsafe_load(field, 2)
 end
-cdelt(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :cdelt)
-crpix(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crpix)
-crval(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crval)
+getcdelt(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :cdelt)
+getcrpix(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crpix)
+getcrval(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crval)
 
 """
 Fast custom WCS structure.
@@ -43,15 +43,15 @@ struct CarClenshawCurtis{T} <: AbstractWCSTransform
     crval::Tuple{T,T}
     unit::T  # conversion factor to radians
 end
-get_unit(T::Type{<:Real}, wcs::CarClenshawCurtis) = T(wcs.unit)
-cdelt(wcs::CarClenshawCurtis) = wcs.cdelt
-crpix(wcs::CarClenshawCurtis) = wcs.crpix
-crval(wcs::CarClenshawCurtis) = wcs.crval
+getunit(T::Type{<:Real}, wcs::CarClenshawCurtis) = T(wcs.unit)
+getcdelt(wcs::CarClenshawCurtis) = wcs.cdelt
+getcrpix(wcs::CarClenshawCurtis) = wcs.crpix
+getcrval(wcs::CarClenshawCurtis) = wcs.crval
 
 Base.copy(w::W) where {W<:CarClenshawCurtis} = w  # CarClenshawCurtis is fully immutable
 
 function Base.convert(::Type{CarClenshawCurtis{T}}, w0::WCSTransform) where T
-    return CarClenshawCurtis{T}(T.(cdelt(w0)), T.(crpix(w0)), T.(crval(w0)), get_unit(T, w0))
+    return CarClenshawCurtis{T}(T.(getcdelt(w0)), T.(getcrpix(w0)), T.(getcrval(w0)), getunit(T, w0))
 end
 
 
@@ -204,8 +204,8 @@ Base.deepcopy(x::Enmap) = Enmap(deepcopy(parent(x)), deepcopy(getwcs(x)))
 
 # internal function for getting the unit of the angles in the WCS header
 # multiply the result of this function with your angle to get radians.
-get_unit(wcs::AbstractWCSTransform) = get_unit(Float64, wcs)
-function get_unit(T::Type{<:Real}, wcs::WCSTransform)
+getunit(wcs::AbstractWCSTransform) = getunit(Float64, wcs)
+function getunit(T::Type{<:Real}, wcs::WCSTransform)
     cunit1, cunit2 = wcs.cunit
     @assert cunit1 == cunit2 "Units of RA and DEC must be the same."
     cunit = cunit1
