@@ -14,6 +14,8 @@ gen_simple(imap, 2)
 
 alms = curvedsky.map2alm(imap, lmax=18, method="auto")
 np.savetxt("data/simple_analytic_sht.txt", np.column_stack([alms.real, alms.imag]), fmt='%.60g')
+alms = curvedsky.map2alm(imap, lmax=3*36, method="auto")
+np.savetxt("data/simple_analytic_sht_fullalm.txt", np.column_stack([alms.real, alms.imag]), fmt='%.60g')
 
 alms = curvedsky.map2alm(imap[4:-3, 5:-2], lmax=18, method="auto")
 np.savetxt("data/simple_analytic_sht_sliced.txt", np.column_stack([alms.real, alms.imag]), fmt='%.60g')
@@ -27,7 +29,7 @@ np.savetxt("data/simple_box_analytic_sht.txt", np.column_stack([alms.real, alms.
 
 
 # spin 2 tests
-shape, wcs = enmap.fullsky_geometry(5.0*utils.degree, dims=(2,))
+shape, wcs = enmap.fullsky_geometry(10.0*utils.degree, dims=(2,))
 qumap = enmap.zeros(shape, wcs=wcs)
 for i in range(qumap.shape[-2]):
     for j in range(qumap.shape[-1]):

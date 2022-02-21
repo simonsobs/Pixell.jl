@@ -61,7 +61,6 @@ function make_cc_geom_info(shape, wcs₀::AbstractWCSTransform)
     return GeomInfo(geom_info_ptr[])
 end
 
-
 """Complete rings for spherical harmonic transforms. Also converts to AbstractArray{Float64,2}."""
 function create_sht_band(m::Enmap)
     shape = size(m)
@@ -76,7 +75,7 @@ function create_sht_band(m::Enmap)
     return converted
 end
 
-
+"""Generate an estimate of the Nyquist frequency for a map"""
 getlmax(wcs) = 3 * fullringsize(wcs)
 
 """perform forward SHT of an intensity map"""
