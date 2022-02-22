@@ -29,4 +29,6 @@ const radian = Unitful.rad
 const degree = Unitful.°
 const arcminute = UnitfulAngles.arcminute
 
+include("plot.jl")
+
 end
