@@ -7,6 +7,7 @@ using FFTW
 using Printf
 import Unitful, UnitfulAngles
 import Unitful: uconvert, ustrip
+using StaticArrays
 using DSP: unwrap, unwrap!
 import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights
 using Libsharp
@@ -20,7 +21,7 @@ include("transforms.jl")
 
 export Enmap, CarClenshawCurtis, getwcs
 export geometry, fullsky_geometry, slice_geometry
-export pix2sky, pix2sky!, sky2pix, sky2pix!
+export pix2sky, pix2sky!, sky2pix, sky2pix!, skyarea
 export read_map, write_map
 export Alm, map2alm
 
