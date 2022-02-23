@@ -7,4 +7,4 @@
 
 [Pixell](https://github.com/simonsobs/Pixell.jl) is a package for high performance data analysis of sky maps with rectangular pixels. It has a particular focus on science enabled by fast map operations, parallel CPU / GPU support, and machine learning. 
 
-This package attempts to maintain the conventions of the Python package [simonsobs/pixell](https://github.com/simonsobs/pixell).
+This package attempts to maintain the conventions of the Python package [simonsobs/pixell](https://github.com/simonsobs/pixell) on which it is based.
