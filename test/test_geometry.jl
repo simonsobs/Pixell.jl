@@ -138,7 +138,6 @@ end
         for j in 1:shape[2]
             ra, dec = pix2sky(m, i, j)
             ra_unsafe, dec_unsafe = pix2sky(m, i, j; safe=false)
-            @show i, j
             @test ra ≈ ra_unsafe 
             @test dec ≈ dec_unsafe
             
@@ -250,7 +249,6 @@ end
         box = [10   -10;           # RA
                -5     5] * degree  # DEC
         shape, wcs = geometry(CarClenshawCurtis, box, (1/60) * degree)
-        @show shape wcs
         @test skyarea(shape, wcs) ≈ 0.06084618627514243
     end
 end
