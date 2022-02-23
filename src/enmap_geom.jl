@@ -1,14 +1,4 @@
 
-
-# abstract type AbstractMapProjection end
-# abstract type EquiCylProjection <: AbstractMapProjection end  # equidistant cylindrical projection
-# abstract type CarProjection <: EquiCylProjection end          # plate carrée
-
-# struct CarClenshawCurtis{W} <: CarProjection end      # plate carrée with pixels on poles and equator
-# CarClenshawCurtis() = CarClenshawCurtis{CarClenshawCurtis}
-# CarClenshawCurtis(::Type{W}) where {W <: AbstractWCSTransform} = CarClenshawCurtis{W}
-
-
 function create_car_wcs(::Type{WCSTransform}, cdelt, crpix, crval)
     wcs = WCSTransform(2;
         ctype = ["RA---CAR", "DEC--CAR"],

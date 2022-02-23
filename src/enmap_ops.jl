@@ -1,5 +1,4 @@
 
-
 """
     rewind(angles, period=2π, ref_angle=0)
 
@@ -111,10 +110,18 @@ function sky2pix!(shape, wcs::WCSTransform, skycoords, pixcoords; safe=true)
     return pixcoords
 end
 pix2sky(shape, wcs::WCSTransform,ra::Number, dec::Number; safe=true) = 
-    pix2sky(shape, wcs, [ra, dec]; safe=safe)
+    pix2sky(shape, wcs, Float64[ra, dec]; safe=safe)
 sky2pix(shape, wcs::WCSTransform,ra::Number, dec::Number; safe=true) = 
-    sky2pix(shape, wcs, [ra, dec]; safe=safe)
+    sky2pix(shape, wcs, Float64[ra, dec]; safe=safe)
 
+function pix2sky(shape, wcs::WCSTransform, ra::AbstractVector, dec::AbstractVector; safe=true)
+    result = pix2sky(shape, wcs, convert(Array{Float64,2}, [ra'; dec']); safe=safe)
+    return result[1,:], result[2,:]
+end
+function sky2pix(shape, wcs::WCSTransform, ra::AbstractVector, dec::AbstractVector; safe=true)
+    result = sky2pix(shape, wcs, convert(Array{Float64,2}, [ra'; dec']); safe=safe)
+    return result[1,:], result[2,:]
+end
 """
     pix2sky!(m::Enmap, pixcoords, skycoords)
 
@@ -354,6 +361,36 @@ function sky2pix(shape, wcs::CarClenshawCurtis, skycoords::AbstractVector; safe=
     @assert length(skycoords) == 2
     return collect(sky2pix(shape, wcs::CarClenshawCurtis, 
         first(skycoords), last(skycoords); safe=safe))
+end
+
+"""Check if a WCS is a cylindrical pixelization"""
+function iscyl(wcs::WCSTransform)
+    # right now we only support CAR
+    ctype = wcs.ctype
+    if ctype[1] == "RA---CAR" && ctype[2] == "DEC--CAR"
+        return true
+    end
+    return false
+end
+iscyl(wcs::CarClenshawCurtis) = true
+
+"""Area of a patch given shape and WCS, in steradians."""
+function skyarea(shape, wcs::WCSTransform)
+    if iscyl(wcs)
+        return skyarea_cyl(shape, wcs)
+    end 
+    error("Area for this WCS is not implemented.")
+end
+skyarea(shape, wcs::CarClenshawCurtis) = skyarea_cyl(shape, wcs)
+
+# generic cylindrical area calculation
+function skyarea_cyl(shape, wcs::AbstractWCSTransform)
+    N_α, N_δ = shape
+    α, δ = pix2sky(shape, wcs, SVector(0., 0.), SVector(0.5, N_δ+0.5); safe=false)
+    δ₁, δ₂ = sort(δ)
+    δ₁, δ₂ = max(-π/2, δ₁), min(π/2, δ₂)
+    Δα, Δδ = getcdelt(wcs) .* getunit(wcs)
+    return (sin(δ₂) - sin(δ₁)) * abs(Δα) * N_α
 end
 
 # this set of slices is necessary because colons are somehow not expanded
