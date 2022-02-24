@@ -27,5 +27,18 @@ Finally, you can eschew our plot recipe completely and use `PyPlot.jl` to have a
 
 ## Map Manipulation
 
+```julia
+box = [10   -10;           # RA
+       -5     5] * degree  # DEC
+shape, wcs = geometry(Pixell.WCS.WCSTransform, box, 1 * degree)
+```
+
 ## Relating pixels to the sky
 
+Unlike the Python version, Pixell.jl always has right ascension in the first dimension, and 
+declination in the second. That is, ``(RA, DEC)`` order, or (horizontal, vertical). 
+
+```julia
+#                                   RA   DEC
+pixRA, pixDEC = sky2pix(shape, wcs, 0.0, 0.0)
+```
