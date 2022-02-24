@@ -3,7 +3,6 @@ module Enplot
 using Colors: RGB, weighted_color_mean
 using RecipesBase
 using ColorSchemes
-
 import Pixell: Enmap, pix2sky
 
 # convert 0:255 integer to 0:1 Float64
@@ -38,13 +37,16 @@ export register_colors!
     aspect_ratio := :equal
     xformatter   := x -> pix2sky_formatter(x, imap)
     yformatter   := x -> pix2sky_formatter(x, imap; ind=2)
-    color          --> :greys
+    color          --> :planck
     xlim           --> (1, size(imap.data,1))  # not nice
     ylim           --> (1, size(imap.data,2))
     colorbar       --> true
     minorticks     --> true
     tick_direction --> :out
     grid           --> false
+    size           --> (450, 
+                        450 * size(imap.data,2) / size(imap.data,1))
+    framestyle     --> :box
 
     imap.data'
 end
