@@ -3,7 +3,6 @@ module Enplot
 using Colors: RGB, weighted_color_mean
 using RecipesBase
 using ColorSchemes
-import Measures: mm
 import Pixell: Enmap, pix2sky
 
 # convert 0:255 integer to 0:1 Float64
