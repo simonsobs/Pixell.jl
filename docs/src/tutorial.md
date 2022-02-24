@@ -4,6 +4,28 @@ CurrentModule = Pixell
 
 # Tutorial
 
+Let's make an Enmap, the primary structure in this package.
+
+```@example tutorial
+using Pixell, Plots # hide
+gr()  # hide
+default(fontfamily="Computer Modern", dpi=300, fmt=:png)  # hide
+```
+
+```@example tutorial
+using Pixell, Plots
+shape, wcs = fullsky_geometry(300.0 * Pixell.arcminute)  # set up the map geometry
+m = Enmap(randn(shape), wcs)  # generate a random map with the shape and WCS
+plot(m)
+```
+
+Let's compute a spherical harmonic transform with Libsharp, and then compute the power spectrum ``C_{\ell}``.
+```@example tutorial
+cl = alm2cl(map2alm(m))
+plot(cl, ylabel=raw"$C_{\ell}$", xlabel=raw"Multipole moment, $\ell$")
+```
+
+
 ## Reading and writing maps
 
 ## Making some plots
