@@ -1,9 +1,13 @@
 using Pixell
 using Documenter
 
+ENV["PLOTS_DEFAULT_BACKEND"] = "GR"
+ENV["GKSwstype"] = "100"
+using Plots
+Plots.default(fontfamily="Computer Modern", fmt=:svg)
+
 DocMeta.setdocmeta!(Pixell, :DocTestSetup, 
-    :(ENV["PLOTS_DEFAULT_BACKEND"] = "GR"; 
-      ENV["GKSwstype"]=100; 
+    :(
       using Pixell, Plots); 
     recursive=true)
 

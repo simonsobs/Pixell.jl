@@ -6,14 +6,9 @@ CurrentModule = Pixell
 
 Let's make an Enmap, the primary structure in this package.
 
-```@example tutorial
-using Plots # hide
-Plots.default(fontfamily="Computer Modern", fmt=:svg) # hide
-```
 
 ```@example tutorial
 using Pixell, Plots
-Plots.default(fontfamily="Computer Modern", fmt=:svg)
 shape, wcs = fullsky_geometry(300.0 * Pixell.arcminute)  # set up the map geometry
 m = Enmap(randn(shape), wcs)  # generate a random map with the shape and WCS
 plot(m)
@@ -28,7 +23,9 @@ plot(cl, ylabel=raw"$C_{\ell}$", xlabel=raw"Multipole moment, $\ell$")
 
 ## Reading and writing maps
 
-## Making some plots
+```julia
+m = read_map("map.fits")
+```
 
 
 ## Noteworthy differences from Python
