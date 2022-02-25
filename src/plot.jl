@@ -44,8 +44,8 @@ export register_colors!
     minorticks     --> true
     tick_direction --> :out
     grid           --> false
-    size           --> (450, 
-                        450 * size(imap.data,2) / size(imap.data,1))
+    size           --> (500, 
+                        500 * size(imap.data,2) / size(imap.data,1))
     framestyle     --> :box
 
     imap.data'

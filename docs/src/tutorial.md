@@ -7,13 +7,13 @@ CurrentModule = Pixell
 Let's make an Enmap, the primary structure in this package.
 
 ```@example tutorial
-using Pixell, Plots # hide
-gr()  # hide
-default(fontfamily="Computer Modern", dpi=300, fmt=:png)  # hide
+using Plots # hide
+Plots.default(fontfamily="Computer Modern", fmt=:svg) # hide
 ```
 
 ```@example tutorial
 using Pixell, Plots
+Plots.default(fontfamily="Computer Modern", fmt=:svg)
 shape, wcs = fullsky_geometry(300.0 * Pixell.arcminute)  # set up the map geometry
 m = Enmap(randn(shape), wcs)  # generate a random map with the shape and WCS
 plot(m)

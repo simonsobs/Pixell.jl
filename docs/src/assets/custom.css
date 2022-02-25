@@ -1,3 +1,5 @@
-img { 
-    width: 75%;
+article#documenter-page > svg {
+    display: block;
+    width:80%;
+    height: auto;
 }

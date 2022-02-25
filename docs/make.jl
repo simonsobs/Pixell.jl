@@ -1,7 +1,11 @@
 using Pixell
 using Documenter
 
-DocMeta.setdocmeta!(Pixell, :DocTestSetup, :(using Pixell); recursive=true)
+DocMeta.setdocmeta!(Pixell, :DocTestSetup, 
+    :(ENV["PLOTS_DEFAULT_BACKEND"] = "GR"; 
+      ENV["GKSwstype"]=100; 
+      using Pixell, Plots); 
+    recursive=true)
 
 makedocs(;
     modules=[Pixell],
