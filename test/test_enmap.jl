@@ -140,7 +140,7 @@ end
     @test stride(m,1) == 1
     @test stride(m,2) == stride(m.data, 2)
     
-    imap = read_map("data/test.fits")
+    imap = read_map("data/test.fits"; trim=false)
     @test Pixell.getunit(imap.wcs) ≈ π/180
     @test sprint(show, imap.wcs) == "WCSTransform(naxis=2,cdelt=[-1.0, 1.0],crval=[0.5, 0.0],crpix=[180.5, 91.0])"
 
