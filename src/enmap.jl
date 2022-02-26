@@ -259,7 +259,7 @@ function resolve_polcconv!(data::A, header::FITSIO.FITSHeader, sel; verbose=true
 end
 
 # read fits file into Enmap
-function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Nothing}=nothing, verbose=true)
+function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Nothing}=nothing, verbose=true, trim=true)
     f = FITS(path, "r")
     data = read(f[hdu], sel...)
     if isnothing(wcs)
@@ -274,7 +274,14 @@ function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Noth
         end
         # WCS.from_header expects each key to be right-padded with len=80
         header_str = join([@sprintf("%-80s", f) for f in split(string(header), "\n")])
-        wcs = sub(WCS.from_header(header_str)[1], 2)
+        if trim == false
+            wcs = sub(WCS.from_header(header_str)[1], 2)
+        else
+            wcs0 = WCS.from_header(header_str)[1]
+            @assert wcs0.ctype[1] == "RA---CAR" 
+            @assert wcs0.ctype[2] == "DEC--CAR"
+            wcs = convert(CarClenshawCurtis{Float64}, wcs0)
+        end
     end
     Enmap(data, wcs)
 end
