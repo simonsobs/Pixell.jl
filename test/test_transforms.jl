@@ -18,7 +18,7 @@ end
     ref_alms = data[:,1] + 1im .* data[:,2]
     @test (alms.alm ≈ ref_alms)
 
-    @test length(map2alm(m).alm) ==5995
+    @test length(map2alm(m).alm) == 190
     
     alms = map2alm(m[6:end-2, 5:end-3]; lmax=18)
     data = readdlm("data/simple_analytic_sht_sliced.txt")

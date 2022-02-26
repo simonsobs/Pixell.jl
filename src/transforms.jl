@@ -76,7 +76,7 @@ function create_sht_band(m::Enmap)
 end
 
 """Generate an estimate of the Nyquist frequency for a map"""
-getlmax(wcs) = 3 * fullringsize(wcs)
+getlmax(wcs) = fullringsize(wcs) ÷ 2
 
 """perform forward SHT of an intensity map"""
 function map2alm(input_map::Enmap{T,2}; lmax=nothing, mmax=lmax) where T
