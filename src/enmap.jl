@@ -54,6 +54,20 @@ function Base.convert(::Type{CarClenshawCurtis{T}}, w0::WCSTransform) where T
     return CarClenshawCurtis{T}(T.(getcdelt(w0)), T.(getcrpix(w0)), T.(getcrval(w0)), getunit(T, w0))
 end
 
+# this kind of WCS only has two spatial dimensions. this check should be constant-propagated
+function Base.getproperty(wcs::CarClenshawCurtis, k::Symbol)
+    if k == :naxis
+        return 2
+    end
+    return getfield(wcs, k)
+end
+
+function Base.show(io::IO, wcs::CarClenshawCurtis{T}) where T
+    expr = join(["$k=$(getproperty(wcs, Symbol(k)))"
+                 for k in ["naxis","cdelt","crval","crpix"]], ",")
+    print(io, "CarClenshawCurtis{$(T)}($expr)")
+end
+
 
 # forward all array traits to parent. based on MetaArrays
 Base.size(x::Enmap) = size(parent(x))
