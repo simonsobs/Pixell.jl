@@ -55,7 +55,7 @@ function Base.convert(::Type{CarClenshawCurtis{T}}, w0::WCSTransform) where T
 end
 
 # this kind of WCS only has two spatial dimensions. this check should be constant-propagated
-function getproperty(wcs::CarClenshawCurtis, k::Symbol)
+function Base.getproperty(wcs::CarClenshawCurtis, k::Symbol)
     if k == :naxis
         return 2
     end
