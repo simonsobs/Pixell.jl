@@ -5,8 +5,8 @@
         imap = read_map("data/test.fits"; trim=trim)
         @test size(imap) == (100, 100, 3)
         @test imap.wcs.naxis == 2
-        @test imap.wcs.cdelt == [-1, 1]
-        @test imap.wcs.crval == [0.5, 0.0]
+        @test collect(imap.wcs.cdelt) == [-1, 1]
+        @test collect(imap.wcs.crval) == [0.5, 0.0]
         @test sum(imap) ≈ 14967.2985
         # read with sel
         imap = read_map("data/test.fits", sel=(11:20,21:40,1:2); trim=trim)
