@@ -19,6 +19,7 @@ include("enmap_geom.jl")
 include("enmap_ops.jl")
 include("transforms.jl")
 include("plot.jl")
+include("transform_distance.jl")
 
 export Enmap, CarClenshawCurtis, getwcs
 export geometry, fullsky_geometry, slice_geometry
