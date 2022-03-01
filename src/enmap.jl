@@ -244,13 +244,14 @@ function Base.show(io::IO, imap::Enmap)
 end
 
 # Select the first n axes, should move to WCS.jl at some point
-function sub(wcs::WCS.WCSTransform, n::Int; inplace=true)
-    new_wcs = inplace ? wcs : copy(wcs)
-    # all naxis fields will be truncated after changing naxis, as
-    # WCS.getproperty refs naxis. Note that wcs.naxis = 2 doesn't work
-    # because it isn't implemented in WCS.setproperty!.
-    setfield!(new_wcs, :naxis, Int32(min(n, wcs.naxis)))
-    new_wcs
+function sub(src::WCS.WCSTransform, n::Int)
+    dst = WCSTransform(n)
+    nsub = Array{Cint}([n])
+    axes = Array{Cint}(collect(1:n))
+    ccall((:wcssub, libwcs), Cint,
+          (Cint, Ref{WCSTransform}, Ptr{Cint}, Ptr{Cint}, Ref{WCSTransform}),
+          0, src, nsub, axes, dst)
+    dst
 end
 
 function resolve_polcconv!(data::A, header::FITSIO.FITSHeader, sel; verbose=true) where {A<:AbstractArray}
