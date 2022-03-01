@@ -1,6 +1,7 @@
 module Pixell
 
 using WCS
+using WCS_jll
 import WCS: AbstractWCSTransform
 using FITSIO
 using FFTW
