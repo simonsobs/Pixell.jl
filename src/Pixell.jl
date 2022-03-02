@@ -26,6 +26,7 @@ export geometry, fullsky_geometry, slice_geometry
 export pix2sky, pix2sky!, sky2pix, sky2pix!, skyarea
 export read_map, write_map
 export Alm, map2alm, alm2cl
+export distance_transform, ApproxSeqSDT, ExactSeqSDT, BruteForceSDT
 
 # set up some shortcuts for common angles
 const radian = Unitful.rad
