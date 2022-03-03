@@ -9,9 +9,44 @@ struct ApproxSeqSDT <: AbstractSeqSDT end
 
 struct ExactSeqSDT <: AbstractSeqSDT
     ϵ::Float64
-    buffer::Vector{Tuple{Int,Int}}
+    buffer::Vector{Tuple{Int,Int,Float64}}
 end
-ExactSeqSDT(ϵfactor=1.0) = ExactSeqSDT(ϵfactor, Tuple{Int,Int}[])
+function ExactSeqSDT(ϵfactor=1.0)
+    buf = Tuple{Int,Int,Float64}[]
+    sizehint!(buf, 20)
+    ExactSeqSDT(ϵfactor, buf)
+end
+
+
+struct PrecomputedSkyAngles{T}
+    cos_α::Vector{T}
+    sin_α::Vector{T}
+    cos_δ::Vector{T}
+    sin_δ::Vector{T}
+    ϵ₀::T
+end
+function PrecomputedSkyAngles(m::Enmap)
+    αs = pix2sky(m, collect(1:size(m,1)), ones(size(m,1)))[1]
+    δs = pix2sky(m, ones(size(m,2)), collect(1:size(m,2)))[2]
+    ca = cos.(αs)
+    sa = sin.(αs)
+    cd = cos.(δs)
+    sd = sin.(δs)
+    ϵ = metric(ApproxSeqSDT(), αs[1], δs[1], αs[2], δs[2])
+    PrecomputedSkyAngles(ca, sa, cd, sd, ϵ)
+end
+
+
+
+struct VectorsAndTies
+    v::Array{Int, 3}
+    ties::Dict{Tuple{Int,Int}, Vector{Tuple{Int,Int}}}
+    legacy::Array{Vector{Tuple{Int,Int,Float64}},2}
+end
+
+const VECTOR_TIE_FLAG = -typemax(Int)
+
+
 
 
 const DANIELSSON_MASK1A = ((-1,-1), (0, -1), (1,-1), (-1,0), (0,0))
@@ -24,13 +59,9 @@ const DANIELSSON_MASK2B = ((-1,0), (0,0))
 function distance_transform(DT::BruteForceSDT, m::Enmap)
     αs = pix2sky(m, collect(1:size(m,1)), ones(size(m,1)))[1]
     δs = pix2sky(m, ones(size(m,2)), collect(1:size(m,2)))[2]
-    
-    ax1 = 2:(size(m,1)-1)
-    ax2 = 2:(size(m,2)-1)
-
 
     bads = Tuple{Int,Int}[]
-    for j in ax2, i in ax1
+    for j in axes(m,2), i in axes(m,1)
         if iszero(m[i,j])
             push!(bads, (i,j))
         end
@@ -38,7 +69,7 @@ function distance_transform(DT::BruteForceSDT, m::Enmap)
     result = fill(0.0, size(m))
     
     max_dist = Inf
-    for j in ax2, i in ax1
+    for j in axes(m,2), i in axes(m,1)
         min_dist = max_dist
         for (bi, bj) in bads
             this_dist = metric_from_indices(DT, αs, δs, i, j, bi, bj)
@@ -46,7 +77,7 @@ function distance_transform(DT::BruteForceSDT, m::Enmap)
         end
         result[i,j] = min_dist
     end
-    return Enmap(sqrt.(result), getwcs(m))
+    return Enmap(acos.(1 .- result ./ 2), getwcs(m))
 end
 
 """Metric on the sphere for RA (α) and DEC (δ)"""
@@ -71,8 +102,26 @@ function metric_from_indices(DT::AbstractSDT, αs, δs, i₁, j₁, i₂, j₂)
     return Inf
 end
 
+function metric_from_indices(::AbstractSDT, psa::PrecomputedSkyAngles, i₁, j₁, i₂, j₂)
+    if (checkbounds(Bool, psa.cos_α, i₁) && checkbounds(Bool, psa.cos_δ, j₁) 
+            && checkbounds(Bool, psa.cos_α, i₂) && checkbounds(Bool, psa.cos_δ, j₂))
+        x₁ = psa.cos_δ[j₁] * psa.cos_α[i₁]
+        y₁ = psa.cos_δ[j₁] * psa.sin_α[i₁]
+        z₁ = psa.sin_δ[j₁]
+    
+        x₂ = psa.cos_δ[j₂] * psa.cos_α[i₂]
+        y₂ = psa.cos_δ[j₂] * psa.sin_α[i₂]
+        z₂ = psa.sin_δ[j₂]
+        return (x₁ - x₂)^2 + (y₁ - y₂)^2 + (z₁ - z₂)^2
+    end
+    return Inf
+end
 
-function propagate!(DT::ApproxSeqSDT, αs, δs, v, i, j, mask)
+
+function propagate!(DT::ApproxSeqSDT, psa, v, i, j, mask)
+
+    i_size = length(psa.cos_α)
+    j_size = length(psa.cos_δ)
 
     min_dist = Inf
     i_min = 0
@@ -80,13 +129,15 @@ function propagate!(DT::ApproxSeqSDT, αs, δs, v, i, j, mask)
     for (iof, jof) in mask
         i′ = i + iof
         j′ = j + jof
-        dist = metric_from_indices(DT, αs, δs, 
-            i + v[1,i′,j′] + iof, j + v[2,i′,j′] + jof, 
-            i, j)
-        if dist < min_dist
-            min_dist = dist 
-            i_min =  v[1,i′,j′] + iof
-            j_min =  v[2,i′,j′] + jof
+        if (1 ≤ i′ ≤ i_size) && (1 ≤ j′ ≤ j_size)
+            dist = metric_from_indices(DT, psa, 
+                i + v[1,i′,j′] + iof, j + v[2,i′,j′] + jof, 
+                i, j)
+            if dist < min_dist
+                min_dist = dist 
+                i_min =  v[1,i′,j′] + iof
+                j_min =  v[2,i′,j′] + jof
+            end
         end
     end
     v[1,i,j] = i_min
@@ -99,9 +150,7 @@ function setup_distance_vectors(::ApproxSeqSDT, m::Enmap)
     max_vector_comp = typemax(Int)
     v = fill(max_vector_comp, (2, shape...) )
 
-    ax1 = 2:(size(m,1)-1)
-    ax2 = 2:(size(m,2)-1)
-    for j in ax2, i in ax1
+    for j in axes(m,2), i in axes(m,1)
         if iszero(m[i,j])
             v[:,i,j] .= (0, 0)
         end
@@ -110,41 +159,41 @@ function setup_distance_vectors(::ApproxSeqSDT, m::Enmap)
 end
 
 function distance_transform_vectors(DT::AbstractSeqSDT, m::Enmap)
-    αs = pix2sky(m, collect(1:size(m,1)), ones(size(m,1)))[1]
-    δs = pix2sky(m, ones(size(m,2)), collect(1:size(m,2)))[2]
     v = setup_distance_vectors(DT, m)
+    psa = PrecomputedSkyAngles(m)
 
-    ax1 = 2:(size(m,1)-1)
-    ax2 = 2:(size(m,2)-1)
+    ax1 = axes(m,1)
+    ax2 = axes(m,2)
 
     for j in ax2
         for i in ax1
-            propagate!(DT, αs, δs, v, i, j, DANIELSSON_MASK1A)
+            propagate!(DT, psa, v, i, j, DANIELSSON_MASK1A)
         end
         for i in reverse(ax1)
-            propagate!(DT, αs, δs, v, i, j, DANIELSSON_MASK1B)
+            propagate!(DT, psa, v, i, j, DANIELSSON_MASK1B)
         end
     end
 
     for j in reverse(ax2)
         for i in reverse(ax1)
-            propagate!(DT, αs, δs, v, i, j, DANIELSSON_MASK2A)
+            propagate!(DT, psa, v, i, j, DANIELSSON_MASK2A)
         end
         for i in (ax1)
-            propagate!(DT, αs, δs, v, i, j, DANIELSSON_MASK2B)
+            propagate!(DT, psa, v, i, j, DANIELSSON_MASK2B)
         end
     end
 
-    return v, αs, δs
+    return v, psa
 end
 
 function distance_transform(DT::ApproxSeqSDT, m::Enmap)
     # these vectors point from the pixel to the offending pixel that it's closest to
-    v, αs, δs = distance_transform_vectors(DT::ApproxSeqSDT, m::Enmap)
+    v, psa = distance_transform_vectors(DT::ApproxSeqSDT, m::Enmap)
     distmap = zeros(size(m))
-    for j in 2:(size(distmap,2)-1), i in 2:(size(distmap,1)-1)
+    for j in axes(distmap,2), i in axes(distmap,1)
         i′, j′ = i + v[1,i,j], j + v[2,i,j]
-        distmap[i,j] = sqrt.(metric_from_indices(DT, αs, δs, i, j, i′ ,j′))
+        d² = (metric_from_indices(DT, psa, i, j, i′ ,j′))
+        distmap[i,j] = acos(1 - d² / 2)
     end
     return Enmap(distmap, Pixell.getwcs(m))
 end
@@ -165,63 +214,60 @@ function setup_distance_vectors(::ExactSeqSDT, m::Enmap)
     return v
 end
 
-function propagate!(DT::ExactSeqSDT, αs, δs, vecs, i, j, mask)
+function propagate!(DT::ExactSeqSDT, psa, vecs, i, j, mask)
 
+    empty!(DT.buffer)
     min_dist = Inf
-    ϵ = metric_from_indices(DT, αs, δs, 1, 1, 2, 2) * DT.ϵ
+    ϵ = psa.ϵ₀ * DT.ϵ
+    i_size = length(psa.cos_α)
+    j_size = length(psa.cos_δ)
     # loop over all vectors at positions in the mask
+
     for (iof, jof) in mask
         i′ = i+iof
         j′ = j+jof
-        for (v1, v2) in vecs[i′,j′]
-            this_dist = metric_from_indices(DT, αs, δs, 
-                i + v1 + iof, j + v2 + jof, 
-                i, j)
-            if this_dist < min_dist
-                min_dist = this_dist
+        if (1 ≤ i′ ≤ i_size) && (1 ≤ j′ ≤ j_size)
+            for (v1, v2) in vecs[i′,j′]
+                this_dist = metric_from_indices(DT, psa, 
+                    i′ + v1, j′ + v2, i, j)
+                push!(DT.buffer, (v1+iof, v2+jof, this_dist))
+                min_dist = min(min_dist, this_dist)
             end
         end
     end
-    
+
     if isfinite(min_dist) && min_dist > 0
-        empty!(DT.buffer)
-        for (iof, jof) in mask
-            for (v1, v2) in vecs[i+iof,j+jof]
-                this_dist = metric_from_indices(DT, αs, δs, 
-                    i + v1 + iof, j + v2 + jof, 
-                    i, j)
-                if this_dist <= min_dist + ϵ
-                    xv = (v1 + iof, v2 + jof)
-                    if xv ∉ DT.buffer
-                        push!(DT.buffer, xv)
-                    end
+        vij = vecs[i,j]
+        empty!(vij)
+        for (ip, jp, td) in DT.buffer
+            if td < min_dist + ϵ
+                xv = (ip, jp)
+                if xv ∉ vij
+                    push!(vij, xv)
                 end
             end
         end
-        resize!(vecs[i,j], length(DT.buffer))
-        vecs[i,j] .= DT.buffer
     end
+
 end
 
 
 function distance_transform(DT::ExactSeqSDT, m::Enmap)
     # these vectors point from the pixel to the offending pixel that it's closest to
-    v, αs, δs = distance_transform_vectors(DT, m)
+    v, psa = distance_transform_vectors(DT, m)
     distmap = zeros(size(m))
     max_dist = Inf
 
-    for j in 2:(size(distmap,2)-1), i in 2:(size(distmap,1)-1)
+    for j in 1:(size(distmap,2)), i in 1:(size(distmap,1))
         
         min_dist = max_dist
         for v in v[i,j]
             i′, j′ = i + v[1], j + v[2]
-            this_dist = sqrt.(metric_from_indices(DT, αs, δs, i, j, i′ ,j′))
-            min_dist = min(min_dist, this_dist)
+            d² = (metric_from_indices(DT, psa, i, j, i′ ,j′))
+            min_dist = min(min_dist, d²)
         end
-        distmap[i,j] = min_dist
+        distmap[i,j] = acos(1 - min_dist / 2)
     end
     return Enmap(distmap, Pixell.getwcs(m))
 end
-##
-
 ##
