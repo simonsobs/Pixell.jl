@@ -41,7 +41,7 @@ end
 struct VectorsAndTies
     v::Array{Int, 3}
     ties::Dict{Tuple{Int,Int}, Vector{Tuple{Int,Int}}}
-    legacy::Array{Vector{Tuple{Int,Int,Float64}},2}
+    legacy::Array{Vector{Tuple{Int,Int}},2}
 end
 
 const VECTOR_TIE_FLAG = -typemax(Int)
@@ -158,10 +158,14 @@ function setup_distance_vectors(::ApproxSeqSDT, m::Enmap)
     return v
 end
 
+
 function distance_transform_vectors(DT::AbstractSeqSDT, m::Enmap)
     v = setup_distance_vectors(DT, m)
     psa = PrecomputedSkyAngles(m)
+    return distance_transform_vectors(DT, m, v, psa)
+end
 
+function distance_transform_vectors(DT::AbstractSeqSDT, m::Enmap, v, psa)
     ax1 = axes(m,1)
     ax2 = axes(m,2)
 
@@ -201,51 +205,124 @@ end
 function setup_distance_vectors(::ExactSeqSDT, m::Enmap)
     shape = size(m)
     max_vector_comp = typemax(Int)
-    v = Array{Vector{Tuple{Int,Int}},2}(undef, shape)
+    legacy = Array{Vector{Tuple{Int,Int}},2}(undef, shape)
 
     for j in axes(m, 2), i in axes(m, 1)
-        v[i,j] = Vector{Tuple{Int,Int}}[]
+        legacy[i,j] = Vector{Tuple{Int,Int}}[]
         if iszero(m[i,j])
-            push!(v[i,j], (0,0))
+            push!(legacy[i,j], (0,0))
         else
-            push!(v[i,j], (max_vector_comp, max_vector_comp))
+            push!(legacy[i,j], (max_vector_comp, max_vector_comp))
         end
     end
-    return v
+
+    ties = Dict{Tuple{Int,Int}, Vector{Tuple{Int,Int}}}()
+    v = setup_distance_vectors(ApproxSeqSDT(), m)
+    return VectorsAndTies(v, ties, legacy)
 end
 
-function propagate!(DT::ExactSeqSDT, psa, vecs, i, j, mask)
 
-    empty!(DT.buffer)
+function _check_ties_prop(DT::ExactSeqSDT, psa, vecs, i, j, mask)
+    # v = vecs.legacy
     min_dist = Inf
-    ϵ = psa.ϵ₀ * DT.ϵ
+    second_min_dist = Inf
+    i_min = 0
+    j_min = 0
     i_size = length(psa.cos_α)
     j_size = length(psa.cos_δ)
-    # loop over all vectors at positions in the mask
 
+    # loop over all vectors at positions in the mask
     for (iof, jof) in mask
         i′ = i+iof
         j′ = j+jof
         if (1 ≤ i′ ≤ i_size) && (1 ≤ j′ ≤ j_size)
-            for (v1, v2) in vecs[i′,j′]
+            v1p, v2p = vecs.v[1,i′,j′], vecs.v[2,i′,j′]
+            if v1p == VECTOR_TIE_FLAG
+                for (v1, v2) in vecs.legacy[i′,j′]
+                    this_dist = metric_from_indices(DT, psa, 
+                        i′ + v1, j′ + v2, i, j)
+                    ip, jp = (v1+iof, v2+jof)
+                    if this_dist < min_dist
+                        second_min_dist = min_dist
+                        min_dist = this_dist
+                        i_min, j_min = ip, jp
+                    elseif this_dist < second_min_dist && !(i_min == ip && j_min == jp)
+                        second_min_dist = this_dist
+                    end
+                end
+            else
+                v1, v2 = v1p, v2p
                 this_dist = metric_from_indices(DT, psa, 
                     i′ + v1, j′ + v2, i, j)
-                push!(DT.buffer, (v1+iof, v2+jof, this_dist))
-                min_dist = min(min_dist, this_dist)
+                ip, jp = (v1+iof, v2+jof)
+                if this_dist < min_dist
+                    second_min_dist = min_dist
+                    min_dist = this_dist
+                    i_min, j_min = ip, jp
+                elseif this_dist < second_min_dist && !(i_min == ip && j_min == jp)
+                    second_min_dist = this_dist
+                end
+            end
+        end
+    end
+    return min_dist, second_min_dist, i_min, j_min
+end
+
+
+function _propagate_tie!(DT::ExactSeqSDT, psa, vecs, i, j, mask, min_dist_plus_eps)
+
+    empty!(DT.buffer)
+    # v = vecs.legacy
+    i_size = length(psa.cos_α)
+    j_size = length(psa.cos_δ)
+    
+    for (iof, jof) in mask
+        i′ = i+iof
+        j′ = j+jof
+        if (1 ≤ i′ ≤ i_size) && (1 ≤ j′ ≤ j_size)
+            v1p, v2p = vecs.v[1,i′,j′], vecs.v[2,i′,j′]
+            if v1p == VECTOR_TIE_FLAG
+                for (v1, v2) in vecs.legacy[i′,j′]
+                    this_dist = metric_from_indices(DT, psa, 
+                        i′ + v1, j′ + v2, i, j)
+                    xv = (v1+iof, v2+jof, this_dist)
+                    push!(DT.buffer, xv)
+                end
+            else
+                v1, v2 = v1p, v2p
+                this_dist = metric_from_indices(DT, psa, 
+                    i′ + v1, j′ + v2, i, j)
+                xv = (v1+iof, v2+jof, this_dist)
+                push!(DT.buffer, xv)
             end
         end
     end
 
-    if isfinite(min_dist) && min_dist > 0
-        vij = vecs[i,j]
-        empty!(vij)
-        for (ip, jp, td) in DT.buffer
-            if td < min_dist + ϵ
-                xv = (ip, jp)
-                if xv ∉ vij
-                    push!(vij, xv)
-                end
+    vij = vecs.legacy[i,j]
+    empty!(vij)
+    for (ip, jp, td) in DT.buffer
+        if td < min_dist_plus_eps
+            xv = (ip, jp)
+            if xv ∉ vij
+                push!(vij, xv)
             end
+        end
+    end
+    # @assert (length(v[i,j]) > 1) == (second_min_dist < min_dist_plus_eps)
+    vecs.v[1,i,j] = VECTOR_TIE_FLAG
+end
+
+function propagate!(DT::ExactSeqSDT, psa, vecs, i, j, mask)
+
+    ϵ = psa.ϵ₀ * DT.ϵ
+    min_dist, second_min_dist, i_min, j_min = _check_ties_prop(DT, psa, vecs, i, j, mask)
+    if isfinite(min_dist) && min_dist > 0
+        min_dist_plus_eps = min_dist + ϵ
+        if  second_min_dist < min_dist_plus_eps
+            _propagate_tie!(DT, psa, vecs, i, j, mask, min_dist_plus_eps)
+        else
+            vecs.v[1,i,j] = i_min
+            vecs.v[2,i,j] = j_min
         end
     end
 
@@ -254,17 +331,21 @@ end
 
 function distance_transform(DT::ExactSeqSDT, m::Enmap)
     # these vectors point from the pixel to the offending pixel that it's closest to
-    v, psa = distance_transform_vectors(DT, m)
+    vecs, psa = distance_transform_vectors(DT, m)
     distmap = zeros(size(m))
     max_dist = Inf
 
     for j in 1:(size(distmap,2)), i in 1:(size(distmap,1))
-        
-        min_dist = max_dist
-        for v in v[i,j]
-            i′, j′ = i + v[1], j + v[2]
-            d² = (metric_from_indices(DT, psa, i, j, i′ ,j′))
-            min_dist = min(min_dist, d²)
+        min_dist = Inf
+        if vecs.v[1,i,j] != VECTOR_TIE_FLAG
+            i′, j′ = i + vecs.v[1,i,j], j + vecs.v[2,i,j]
+            min_dist = (metric_from_indices(DT, psa, i, j, i′ ,j′))
+        else
+            for v in vecs.legacy[i,j]
+                i′, j′ = i + v[1], j + v[2]
+                d² = (metric_from_indices(DT, psa, i, j, i′ ,j′))
+                min_dist = min(min_dist, d²)
+            end
         end
         distmap[i,j] = acos(1 - min_dist / 2)
     end
