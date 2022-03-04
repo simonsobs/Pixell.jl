@@ -292,7 +292,7 @@ function _propagate_tie!(DT::ExactSeqSDT, psa, vecs, i, j, mask, min_dist_plus_e
     for (ip, jp, td) in DT.buffer
         if td < min_dist_plus_eps
             xv = (ip, jp)
-            if xv ∉ vij
+            if xv ∉ vij
                 push!(vij, xv)
             end
         end
