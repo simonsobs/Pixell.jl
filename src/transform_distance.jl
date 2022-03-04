@@ -13,7 +13,7 @@ struct ExactSeqSDT <: AbstractSeqSDT
 end
 function ExactSeqSDT(ϵfactor=1.0)
     buf = Tuple{Int,Int,Float64}[]
-    sizehint!(buf, 20)
+    sizehint!(buf, 25)
     ExactSeqSDT(ϵfactor, buf)
 end
 
@@ -37,16 +37,12 @@ function PrecomputedSkyAngles(m::Enmap)
 end
 
 
-
 struct VectorsAndTies
     v::Array{Int, 3}
     ties::Dict{Tuple{Int,Int}, Vector{Tuple{Int,Int}}}
-    legacy::Array{Vector{Tuple{Int,Int}},2}
 end
 
 const VECTOR_TIE_FLAG = -typemax(Int)
-
-
 
 
 const DANIELSSON_MASK1A = ((-1,-1), (0, -1), (1,-1), (-1,0), (0,0))
@@ -80,6 +76,7 @@ function distance_transform(DT::BruteForceSDT, m::Enmap)
     return Enmap(acos.(1 .- result ./ 2), getwcs(m))
 end
 
+
 """Metric on the sphere for RA (α) and DEC (δ)"""
 function metric(::AbstractSDT, α₁, δ₁, α₂, δ₂)
     x₁ = cos(δ₁) * cos(α₁)
@@ -101,6 +98,7 @@ function metric_from_indices(DT::AbstractSDT, αs, δs, i₁, j₁, i₂, j₂)
     end
     return Inf
 end
+
 
 function metric_from_indices(::AbstractSDT, psa::PrecomputedSkyAngles, i₁, j₁, i₂, j₂)
     if (checkbounds(Bool, psa.cos_α, i₁) && checkbounds(Bool, psa.cos_δ, j₁) 
@@ -165,6 +163,7 @@ function distance_transform_vectors(DT::AbstractSeqSDT, m::Enmap)
     return distance_transform_vectors(DT, m, v, psa)
 end
 
+
 function distance_transform_vectors(DT::AbstractSeqSDT, m::Enmap, v, psa)
     ax1 = axes(m,1)
     ax2 = axes(m,2)
@@ -190,6 +189,7 @@ function distance_transform_vectors(DT::AbstractSeqSDT, m::Enmap, v, psa)
     return v, psa
 end
 
+
 function distance_transform(DT::ApproxSeqSDT, m::Enmap)
     # these vectors point from the pixel to the offending pixel that it's closest to
     v, psa = distance_transform_vectors(DT::ApproxSeqSDT, m::Enmap)
@@ -202,28 +202,16 @@ function distance_transform(DT::ApproxSeqSDT, m::Enmap)
     return Enmap(distmap, Pixell.getwcs(m))
 end
 
+
 function setup_distance_vectors(::ExactSeqSDT, m::Enmap)
-    shape = size(m)
-    max_vector_comp = typemax(Int)
-    legacy = Array{Vector{Tuple{Int,Int}},2}(undef, shape)
-
-    for j in axes(m, 2), i in axes(m, 1)
-        legacy[i,j] = Vector{Tuple{Int,Int}}[]
-        if iszero(m[i,j])
-            push!(legacy[i,j], (0,0))
-        else
-            push!(legacy[i,j], (max_vector_comp, max_vector_comp))
-        end
-    end
-
     ties = Dict{Tuple{Int,Int}, Vector{Tuple{Int,Int}}}()
     v = setup_distance_vectors(ApproxSeqSDT(), m)
-    return VectorsAndTies(v, ties, legacy)
+    return VectorsAndTies(v, ties)
 end
 
 
+# get shortest and longest distances
 function _check_ties_prop(DT::ExactSeqSDT, psa, vecs, i, j, mask)
-    # v = vecs.legacy
     min_dist = Inf
     second_min_dist = Inf
     i_min = 0
@@ -238,7 +226,7 @@ function _check_ties_prop(DT::ExactSeqSDT, psa, vecs, i, j, mask)
         if (1 ≤ i′ ≤ i_size) && (1 ≤ j′ ≤ j_size)
             v1p, v2p = vecs.v[1,i′,j′], vecs.v[2,i′,j′]
             if v1p == VECTOR_TIE_FLAG
-                for (v1, v2) in vecs.legacy[i′,j′]
+                for (v1, v2) in vecs.ties[i′,j′]
                     this_dist = metric_from_indices(DT, psa, 
                         i′ + v1, j′ + v2, i, j)
                     ip, jp = (v1+iof, v2+jof)
@@ -269,12 +257,13 @@ function _check_ties_prop(DT::ExactSeqSDT, psa, vecs, i, j, mask)
 end
 
 
+# handle a situation where ties are present
 function _propagate_tie!(DT::ExactSeqSDT, psa, vecs, i, j, mask, min_dist_plus_eps)
 
     empty!(DT.buffer)
-    # v = vecs.legacy
     i_size = length(psa.cos_α)
     j_size = length(psa.cos_δ)
+    ties = vecs.ties
     
     for (iof, jof) in mask
         i′ = i+iof
@@ -282,7 +271,7 @@ function _propagate_tie!(DT::ExactSeqSDT, psa, vecs, i, j, mask, min_dist_plus_e
         if (1 ≤ i′ ≤ i_size) && (1 ≤ j′ ≤ j_size)
             v1p, v2p = vecs.v[1,i′,j′], vecs.v[2,i′,j′]
             if v1p == VECTOR_TIE_FLAG
-                for (v1, v2) in vecs.legacy[i′,j′]
+                for (v1, v2) in ties[i′,j′]
                     this_dist = metric_from_indices(DT, psa, 
                         i′ + v1, j′ + v2, i, j)
                     xv = (v1+iof, v2+jof, this_dist)
@@ -298,7 +287,7 @@ function _propagate_tie!(DT::ExactSeqSDT, psa, vecs, i, j, mask, min_dist_plus_e
         end
     end
 
-    vij = vecs.legacy[i,j]
+    vij = Tuple{Int,Int}[]
     empty!(vij)
     for (ip, jp, td) in DT.buffer
         if td < min_dist_plus_eps
@@ -308,12 +297,13 @@ function _propagate_tie!(DT::ExactSeqSDT, psa, vecs, i, j, mask, min_dist_plus_e
             end
         end
     end
-    # @assert (length(v[i,j]) > 1) == (second_min_dist < min_dist_plus_eps)
+    ties[i,j] = vij
     vecs.v[1,i,j] = VECTOR_TIE_FLAG
 end
 
-function propagate!(DT::ExactSeqSDT, psa, vecs, i, j, mask)
 
+# toggle based on ties or not
+function propagate!(DT::ExactSeqSDT, psa, vecs, i, j, mask)
     ϵ = psa.ϵ₀ * DT.ϵ
     min_dist, second_min_dist, i_min, j_min = _check_ties_prop(DT, psa, vecs, i, j, mask)
     if isfinite(min_dist) && min_dist > 0
@@ -325,23 +315,24 @@ function propagate!(DT::ExactSeqSDT, psa, vecs, i, j, mask)
             vecs.v[2,i,j] = j_min
         end
     end
-
 end
 
 
+"""Compute an exact distance transform ~ O(Nₚᵢₓ), based on Mullikin 1992 and Danielsson 1980"""
 function distance_transform(DT::ExactSeqSDT, m::Enmap)
-    # these vectors point from the pixel to the offending pixel that it's closest to
+
+    # get the vectors pointing to the closest background pixel
     vecs, psa = distance_transform_vectors(DT, m)
     distmap = zeros(size(m))
-    max_dist = Inf
 
+    # convert vectors into distances
     for j in 1:(size(distmap,2)), i in 1:(size(distmap,1))
         min_dist = Inf
         if vecs.v[1,i,j] != VECTOR_TIE_FLAG
             i′, j′ = i + vecs.v[1,i,j], j + vecs.v[2,i,j]
             min_dist = (metric_from_indices(DT, psa, i, j, i′ ,j′))
         else
-            for v in vecs.legacy[i,j]
+            for v in vecs.ties[i,j]
                 i′, j′ = i + v[1], j + v[2]
                 d² = (metric_from_indices(DT, psa, i, j, i′ ,j′))
                 min_dist = min(min_dist, d²)
@@ -351,4 +342,4 @@ function distance_transform(DT::ExactSeqSDT, m::Enmap)
     end
     return Enmap(distmap, Pixell.getwcs(m))
 end
-##
+
