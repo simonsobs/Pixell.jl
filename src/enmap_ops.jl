@@ -394,14 +394,20 @@ function skyarea_cyl(shape, wcs::AbstractWCSTransform)
 end
 
 """Generate a similar Enmap whose pixel values are the areas of the pixels in steradians."""
-function pixareamap(m::Enmap) 
+function pixareamap(m::Enmap{T,N,AA,W}) where {T,N,AA,W<:CarClenshawCurtis}
     pixareas = similar(m)
+    pixareamap!(pixareas)
+end
+
+function pixareamap(shape, wcs::CarClenshawCurtis) 
+    pixareas = Enmap(Array{Float64}(undef, shape), wcs)
     pixareamap!(pixareas)
 end
 
 """In-place write to pixels the areas of those pixels in steradians."""
 function pixareamap!(pixareas::Enmap)
     shape = size(pixareas)
+    wcs = getwcs(pixareas)
     ncols, nrows = shape
     Δα, Δδ = abs.(getcdelt(wcs) .* getunit(wcs))
 
@@ -414,6 +420,8 @@ function pixareamap!(pixareas::Enmap)
 
     return pixareas
 end
+
+
 
 
 # this set of slices is necessary because colons are somehow not expanded

@@ -1,7 +1,5 @@
 using Base: ViewIndex, @propagate_inbounds, AbstractCartesianIndex
 
-
-
 """
 Map type, contains an AbstractArray and a WCS object, but behaves like the
 AbstractArray it contains for array operations.
