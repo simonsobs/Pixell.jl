@@ -254,15 +254,32 @@ end
 end
 
 @testset "pixareamap" begin
-    shape, wcs = fullsky_geometry(π/180)
-    pm = pixareamap(shape, wcs)
-    pm_py = readdlm("data/fullsky_pixareas.dat")
-    @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
-
     box = [10  -10;           # RA
            -5    5] * Pixell.degree  # DEC
-    shape, wcs = geometry(CarClenshawCurtis{Float64}, box, 5. * Pixell.arcminute)
-    pm = pixareamap(shape, wcs)
-    pm_py = readdlm("data/box_pixareas.dat")
-    @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
+
+    boxgeom = geometry(CarClenshawCurtis{Float64}, box, 5. * Pixell.arcminute)
+    fullgeom = fullsky_geometry(π/180)
+
+    pm_py_full = readdlm("data/fullsky_pixareas.dat")
+    pm_py_box = readdlm("data/box_pixareas.dat")
+
+    for i in 1:2
+        # test passing shape, wcs info
+        shape, wcs = (fullgeom, boxgeom)[i]
+        pm_py = (pm_py_full, pm_py_box)[i]
+
+        pm = pixareamap(shape, wcs)
+        @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
+
+        pm = pixareamap(shape, wcs)
+        @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
+
+        # test passing an Enmap
+        m = Enmap(zeros(shape), wcs)
+        pm = pixareamap(m)
+        @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
+        fill!(pm, 0.0)
+        pm = pixareamap!(m)
+        @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
+    end
 end
