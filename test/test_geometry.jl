@@ -1,5 +1,5 @@
 using Pixell
-using Test
+using Test, DelimitedFiles
 import Pixell: degree, arcminute
 
 @testset "Enmap geometry" begin
