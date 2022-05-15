@@ -393,6 +393,29 @@ function skyarea_cyl(shape, wcs::AbstractWCSTransform)
     return (sin(δ₂) - sin(δ₁)) * abs(Δα) * N_α
 end
 
+"""Generate a similar Enmap whose pixel values are the areas of the pixels in steradians."""
+function pixareamap(m::Enmap) 
+    pixareas = similar(m)
+    pixareamap!(pixareas)
+end
+
+"""In-place write to pixels the areas of those pixels in steradians."""
+function pixareamap!(pixareas::Enmap)
+    shape = size(pixareas)
+    ncols, nrows = shape
+    Δα, Δδ = abs.(getcdelt(wcs) .* getunit(wcs))
+
+    for i in 1:nrows
+        α, δ = pix2sky(shape, wcs, SVector(1., 1.), SVector(i-0.5, i+0.5); safe=false)
+        δ₁, δ₂ = sort(δ)
+        δ₁, δ₂ = max(-π/2, δ₁), min(π/2, δ₂)
+        pixareas[:,i] .= (sin(δ₂) - sin(δ₁)) * Δα
+    end
+
+    return pixareas
+end
+
+
 # this set of slices is necessary because colons are somehow not expanded
 slice_geometry(shape::Tuple, wcs, sel_x::Colon, s...) = slice_geometry(shape, wcs, 1:shape[1], s...)
 slice_geometry(shape::Tuple, wcs, sel_x::Colon, sel_y::Colon, s...) = slice_geometry(shape, wcs, 1:shape[1], 1:shape[2], s...)
