@@ -17,7 +17,7 @@
         distmap_approx = distance_transform(ApproxSeqSDT(), m)
 
         @test sum(abs.((distmap_bf .- distmap))) < 1e-13
-        @test (sum(distmap_bf .!= distmap_approx) / prod(size(distmap))) < 0.1
+        @test (sum(distmap_bf .!= distmap_approx) / prod(size(distmap))) < 0.2
     end
 
 end
