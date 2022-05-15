@@ -18,7 +18,7 @@ import Pixell: degree, arcminute
         @test shape == (72, 37, 3)
 
         box = [10  -10;           # RA
-            -5    5] * degree  # DEC
+               -5    5] * degree  # DEC
         shape, wcs = geometry(W, box, 0.5 * arcminute)
         @test shape == (2400, 1200)
         @test collect(wcs.cdelt) ≈ [-0.008333333333333333,  0.008333333333333333]
@@ -26,7 +26,7 @@ import Pixell: degree, arcminute
         @test collect(wcs.crval) == [0.0, 0.0]
 
         box = [11  -10;           # RA
-            -6    5] * degree  # DEC
+               -6    5] * degree  # DEC
         shape, wcs = geometry(W, box, 0.5 * arcminute)
         @test shape == (2520, 1320)
         @test collect(wcs.cdelt) ≈ [-0.008333333333333333,  0.008333333333333333]
@@ -34,7 +34,7 @@ import Pixell: degree, arcminute
         @test collect(wcs.crval) ≈ [0.5, 0.0]
 
         box = [10   -4;           # RA
-            -3    5] * degree  # DEC
+               -3    5] * degree  # DEC
         shape, wcs = geometry(W, box, 0.5 * arcminute)
         @test shape == (1680, 960)
         @test collect(wcs.crpix) ≈ [841, 361]
@@ -251,4 +251,18 @@ end
         shape, wcs = geometry(CarClenshawCurtis, box, (1/60) * degree)
         @test skyarea(shape, wcs) ≈ 0.06084618627514243
     end
+end
+
+@testset "pixareamap" begin
+    shape, wcs = fullsky_geometry(π/180)
+    pm = pixareamap(shape, wcs)
+    pm_py = readdlm("data/fullsky_pixareas.dat")
+    @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
+
+    box = [10  -10;           # RA
+           -5    5] * Pixell.degree  # DEC
+    shape, wcs = geometry(CarClenshawCurtis{Float64}, box, 5. * Pixell.arcminute)
+    pm = pixareamap(shape, wcs)
+    pm_py = readdlm("data/box_pixareas.dat")
+    @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
 end
