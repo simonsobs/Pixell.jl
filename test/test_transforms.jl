@@ -77,14 +77,6 @@ end
 end
 ##
 
-# @testset "CMB alm2map and map2alm" begin
-##
-using Pixell
-using DelimitedFiles
-cd("test")
-using Plots
-##
-
 @testset "alm2map" begin
     alm_r = readdlm("data/TEB_alms_real.dat")
     alm_i = readdlm("data/TEB_alms_imag.dat")
