@@ -75,3 +75,42 @@ end
     
     alm_t, alm_e, alm_b = map2alm((m_IQU[:,:,1], m_IQU[:,:,2], m_IQU[:,:,3]); lmax=3 * 36)
 end
+##
+
+# @testset "CMB alm2map and map2alm" begin
+##
+using Pixell
+using DelimitedFiles
+cd("test")
+using Plots
+##
+
+@testset "alm2map" begin
+    alm_r = readdlm("data/TEB_alms_real.dat")
+    alm_i = readdlm("data/TEB_alms_imag.dat")
+    lmax = 540
+    alms = [Alm(lmax,lmax), Alm(lmax,lmax), Alm(lmax,lmax)]
+    for i in 1:3
+        alms[i].alm .+= alm_r[i,:] .+ 1im .* alm_i[i,:]
+    end
+
+    test_IQU = read_map("data/IQU.fits")
+    I, Q, U = alm2map(alms, size(test_IQU), test_IQU.wcs)
+
+    pyI = read_map("data/pyI.fits")[:,:,1]
+    pyQU = read_map("data/pyQU.fits")
+
+    @test maximum(abs.(I .- pyI)) < 1e-9
+    @test maximum(abs.(Q .- pyQU[:,:,1])) < 1e-9
+    @test maximum(abs.(U .- pyQU[:,:,2])) < 1e-9
+end
+
+@testset "map2alm CMB" begin
+    test_IQU = read_map("data/IQU.fits")
+    aT, aE, aB = map2alm((I, Q,U); lmax=540)
+    data = readdlm("data/test_cls_IQU.txt")
+    @test maximum(abs.(alm2cl(aT) .- data[:,1])) < 1e-10
+    @test maximum(abs.(alm2cl(aT, aE) .- data[:,2])) < 1e-10
+    @test maximum(abs.(alm2cl(aE) .- data[:,3])) < 1e-10
+    @test maximum(abs.(alm2cl(aB) .- data[:,4])) < 1e-10
+end
