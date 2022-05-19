@@ -27,10 +27,6 @@ heatmap(PyArray(imap)' - PyArray(newpymap)', clim=(-1e-5,1e-5))
 using PowerSpectra
 
 Dl = PowerSpectra.planck_theory_Dl()
-
-##
-
-
 channelindex(X) = findfirst(first(X), "TEB")
 
 ells = collect(eachindex(Dl[:TT]))
@@ -47,18 +43,32 @@ for X in ("T", "E", "B"), Y in ("T", "E", "B")
     end
 end
 
-lmax = 720
+lmax = 180
 alms = [Alm(lmax, lmax) for s in 1:3]
 synalm!(𝐂[:,:,1:lmax+1], alms)
 
 ##
+shape, wcs = fullsky_geometry(1.0 * Pixell.degree)
 m = alm2map(alms[1], shape, wcs)
 plot(m)
 # plot(abs.(alm2cl(alms[1], alms[2])), yscale=:log10)
 # plot!(abs.(𝐂[1,2,1:lmax]))
 
+a1 = map2alm(m)
+
 
 ##
-
+write_map("patch.fits", m)
 
 ##
+imap = pycall(enmap.read_map, PyObject, "patch.fits")
+pyshape = imap.shape
+pywcs = imap.wcs
+pya = curvedsky.map2alm(imap, lmax=lmax)
+
+##
+plot(alm2cl(a1))
+plot!(alm2cl(Alm(lmax,lmax,pya)), yscale=:log10)
+
+##
+plot(alm2cl(a1) .- alm2cl(Alm(lmax,lmax,pya)))

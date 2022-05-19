@@ -49,7 +49,16 @@ getcrval(wcs::CarClenshawCurtis) = wcs.crval
 Base.copy(w::W) where {W<:CarClenshawCurtis} = w  # CarClenshawCurtis is fully immutable
 
 function Base.convert(::Type{CarClenshawCurtis{T}}, w0::WCSTransform) where T
-    return CarClenshawCurtis{T}(T.(getcdelt(w0)), T.(getcrpix(w0)), T.(getcrval(w0)), getunit(T, w0))
+    return CarClenshawCurtis{T}(
+        T.(getcdelt(w0)), T.(getcrpix(w0)), T.(getcrval(w0)), getunit(T, w0))
+end
+
+function Base.convert(::Type{WCSTransform}, w0::CarClenshawCurtis{T}) where T
+    return WCSTransform(2;
+        ctype = ["RA---CAR", "DEC--CAR"],
+        cdelt = collect(getcdelt(w0)),
+        crpix = collect(getcrpix(w0)),
+        crval = collect(getcrval(w0)))
 end
 
 # this kind of WCS only has two spatial dimensions. this check should be constant-propagated
@@ -305,7 +314,7 @@ function write_map(fname::String, emap::Enmap)
     # some default headers that describe the shape for us. We then update
     # header based on wcs information to populate the rest of the cards
     write(f, emap.data)
-    header = WCS.to_header(getwcs(emap))
+    header = WCS.to_header(Base.convert(WCSTransform, getwcs(emap)))
     cards = [header[1+(i-1)*80:i*80] for i = 1:round(Int, length(header)/80)]
     for c in cards
         FITSIO.CFITSIO.fits_write_record(f.fitsfile, c)
