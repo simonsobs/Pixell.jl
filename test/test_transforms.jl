@@ -99,7 +99,7 @@ end
 
 @testset "map2alm CMB" begin
     test_IQU = read_map("data/IQU.fits")
-    aT, aE, aB = map2alm((I, Q,U); lmax=540)
+    aT, aE, aB = map2alm(test_IQU; lmax=540)
     data = readdlm("data/test_cls_IQU.txt")
     @test maximum(abs.(alm2cl(aT) .- data[:,1])) < 1e-10
     @test maximum(abs.(alm2cl(aT, aE) .- data[:,2])) < 1e-10
