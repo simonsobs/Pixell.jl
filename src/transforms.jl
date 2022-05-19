@@ -108,30 +108,6 @@ function map2alm(input_map::Enmap{T,2}; lmax=nothing, mmax=lmax) where T
 end
 
 
-"""perform inverse SHT of an intensity map"""
-function alm2map(alm::Alm, shape, wcs::AbstractWCSTransform) where T
-
-    band = create_sht_band(shape, wcs)
-    geom_info = make_cc_geom_info(size(band), getwcs(band))
-    npix = map_size(geom_info)
-    flat_map = reshape(band.data, npix)
-
-    alm_info = make_triangular_alm_info(alm.lmax, alm.mmax, 1)
-
-    sharp_execute!(
-        SHARP_ALM2MAP, 0, 
-        [alm.alm], 
-        [flat_map],
-        geom_info, alm_info, SHARP_DP)
-
-    Δα, Δδ = getcdelt(wcs)
-    band_width = size(band,1)
-    xslice = (Δα ≥ 0) ? (1:shape[1]) : (band_width:-1:(band_width-shape[1]+1))
-    yslice = (Δδ ≤ 0) ? (1:shape[2]) : (shape[2]:-1:1)
-
-    return Enmap(band.data[xslice, yslice], wcs)
-end
-
 # spin 2 transforms ----
 
 # 2-tuple of scalar enmaps means QU transform
@@ -218,4 +194,72 @@ function _map2almQU(input_map::Enmap{T,3}; lmax, mmax) where T
         Ptr{Cdouble}(C_NULL), Ptr{Culonglong}(C_NULL))
 
     return alm_e, alm_b
+end
+
+
+
+## inverse
+
+
+
+"""perform inverse SHT of an intensity map"""
+function alm2map(alm::Alm, shape, wcs::AbstractWCSTransform)
+
+    band = create_sht_band(shape[1:2], wcs)
+    geom_info = make_cc_geom_info(size(band), getwcs(band))
+    npix = map_size(geom_info)
+    flat_map = reshape(band.data, npix)
+    alm_info = make_triangular_alm_info(alm.lmax, alm.mmax, 1)
+
+    sharp_execute!(
+        SHARP_ALM2MAP, 0, 
+        [alm.alm], 
+        [flat_map],
+        geom_info, alm_info, SHARP_DP)
+
+    Δα, Δδ = getcdelt(wcs)
+    band_width = size(band,1)
+    xslice = (Δα ≥ 0) ? (1:shape[1]) : (band_width:-1:(band_width-shape[1]+1))
+    yslice = (Δδ ≤ 0) ? (1:shape[2]) : (shape[2]:-1:1)
+
+    return Enmap(band.data[xslice, yslice], wcs)
+end
+
+function alm2map(alms::NTuple{2,Alm}, shape, wcs::AbstractWCSTransform)
+    lmax, mmax = first(alms).lmax, first(alms).mmax
+    alm_info = make_triangular_alm_info(first(alms).lmax, first(alms).mmax, 1)
+
+    band_maps = (create_sht_band(shape[1:2], wcs), create_sht_band(shape[1:2], wcs))
+    geom_info = make_cc_geom_info(size(first(band_maps)), getwcs(first(band_maps)))
+    npix = map_size(geom_info)
+    flat_maps = [reshape(band_maps[1].data, npix), reshape(band_maps[2].data, npix)]
+
+    npix = map_size(geom_info)
+    alm_info = make_triangular_alm_info(lmax, mmax, 1)
+
+    sharp_execute!(
+        SHARP_ALM2MAP, 2, 
+        [a.alm for a in alms], 
+        flat_maps,
+        geom_info, alm_info, SHARP_DP)
+
+    Δα, Δδ = getcdelt(wcs)
+    band_width = size(first(band_maps),1)
+    xslice = (Δα ≥ 0) ? (1:shape[1]) : (band_width:-1:(band_width-shape[1]+1))
+    yslice = (Δδ ≤ 0) ? (1:shape[2]) : (shape[2]:-1:1)
+
+    return [Enmap(b.data[xslice, yslice], wcs) for b in band_maps]
+end
+
+alm2map(alms::NTuple{3,Alm}, shape, wcs::AbstractWCSTransform) =
+    (alm2map(alms[1], shape, wcs), alm2map(alms[2:3], shape, wcs)...)
+
+function alm2map(alms::Vector{A}, shape, wcs::AbstractWCSTransform) where {A <: Alm}
+    if length(alms) == 1
+        return alm2map(alms[1], shape, wcs)
+    elseif length(alms) == 2
+        return alm2map((alms[1], alms[2]), shape, wcs)
+    elseif length(alms) == 3
+        return alm2map((alms[1], alms[2], alms[3]), shape, wcs)
+    end
 end
