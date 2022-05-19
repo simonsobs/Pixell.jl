@@ -11,13 +11,14 @@ fullringnum(wcs::AbstractWCSTransform) =
 function first_last_rings_in_fullsky(shape, wcs::AbstractWCSTransform)
     Δδ = getcdelt(wcs)[end] * getunit(wcs)
     Δθ = abs(Δδ)
-    δ₁ = pix2sky(shape, wcs, 1, 1)[end]
-    δ₂ = pix2sky(shape, wcs, 1, shape[2])[end]
+    δ₁ = pix2sky(shape, wcs, 1, 1)[2]
+    δ₂ = pix2sky(shape, wcs, 1, shape[2])[2]
     θ₁ = π/2 - δ₁
     θ₂ = π/2 - δ₂
     i1 = round(Int64, θ₁ / Δθ) + 1
     i2 = round(Int64, θ₂ / Δθ) + 1
-    return i1:i2
+
+    return i1:sign(i2-i1):i2
 end
 
 # libsharp wants ascending colatitude (θ) and increasing right ascension (ϕ)
@@ -75,6 +76,11 @@ function create_sht_band(m::Enmap)
     return converted
 end
 
+function create_sht_band(shape, wcs::AbstractWCSTransform)
+    target_size = (fullringsize(wcs), shape[2:end]...)
+    return Enmap(zeros(Float64, target_size), wcs)
+end
+
 """Generate an estimate of the Nyquist frequency for a map"""
 getlmax(wcs) = fullringsize(wcs) ÷ 2
 
@@ -99,6 +105,31 @@ function map2alm(input_map::Enmap{T,2}; lmax=nothing, mmax=lmax) where T
         geom_info, alm_info, SHARP_DP
     )
     return alm
+end
+
+
+"""perform inverse SHT of an intensity map"""
+function alm2map(alm::Alm, shape, wcs::AbstractWCSTransform) where T
+
+    band = create_sht_band(shape, wcs)
+    geom_info = make_cc_geom_info(size(band), getwcs(band))
+    npix = map_size(geom_info)
+    flat_map = reshape(band.data, npix)
+
+    alm_info = make_triangular_alm_info(alm.lmax, alm.mmax, 1)
+
+    sharp_execute!(
+        SHARP_ALM2MAP, 0, 
+        [alm.alm], 
+        [flat_map],
+        geom_info, alm_info, SHARP_DP)
+
+    Δα, Δδ = getcdelt(wcs)
+    band_width = size(band,1)
+    xslice = (Δα ≥ 0) ? (1:shape[1]) : (band_width:-1:(band_width-shape[1]+1))
+    yslice = (Δδ ≤ 0) ? (1:shape[2]) : (shape[2]:-1:1)
+
+    return Enmap(band.data[xslice, yslice], wcs)
 end
 
 # spin 2 transforms ----
