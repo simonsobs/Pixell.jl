@@ -13,7 +13,7 @@ using DSP: unwrap, unwrap!
 import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights
 using Libsharp
 import Libsharp: sharp_execute!
-import Healpix: Alm, map2alm, alm2cl
+import Healpix: Alm, map2alm, alm2map, alm2cl
 
 include("enmap.jl")
 include("enmap_geom.jl")
