@@ -1,7 +1,7 @@
 name = "Pixell"
 uuid = "d4cbf8b2-a14f-4080-9f5e-d5a64ada768e"
 authors = ["Zack Li", "Yilun Guan"]
-version = "0.2.2"
+version = "0.2.3"
 
 [deps]
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
@@ -27,7 +27,7 @@ DSP = "0.7"
 FFTW = "1"
 FITSIO = "0.16"
 FastTransforms = "0.13, 0.14"
-Healpix = "3"
+Healpix = "3, 4"
 Libsharp = "0.2"
 RecipesBase = "1"
 StaticArrays = "1"
