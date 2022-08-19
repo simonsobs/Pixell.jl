@@ -1,4 +1,4 @@
-import PhysicalConstants.CODATA2018 as units
+import PhysicalConstants.CODATA2018 as consts
 import Unitful: ustrip
 
 @doc raw"""
@@ -15,9 +15,9 @@ with ``V = 2hf^3/c^2``, ``x = hf/kT``.
 ``      = .... /(4*sinh(x/2)^2)``
 """
 function dplanck(f, T=2.72548)
-    c = ustrip(units.c_0)
-    k = ustrip(units.k_B)
-    h = ustrip(units.h)
+    c = ustrip(consts.c_0)
+    k = ustrip(consts.k_B)
+    h = ustrip(consts.h)
 
     x = h*f/(k*T)
     dIdT = 2*x^4 * k^3*T^2/(h^2*c^2) / (4*sinh(x/2)^2) * 1e26
