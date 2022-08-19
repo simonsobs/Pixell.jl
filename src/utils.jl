@@ -1,7 +1,5 @@
-const h = 6.62606957e-34
-const k  = 1.3806488e-23
-const T_cmb = 2.72548 # +/- 0.00057
-const c  = 299792458.0
+import PhysicalConstants.CODATA2018 as units
+import Unitful: ustrip
 
 @doc raw"""
 The derivative of the planck spectrum with respect to temperature, evaluated
@@ -16,8 +14,12 @@ with ``V = 2hf^3/c^2``, ``x = hf/kT``.
 ``      = 2*x^4 * k^3*T^2/(h^2*c^2) * \exp{x}/(\exp{x}-1)^2``
 ``      = .... /(4*sinh(x/2)^2)``
 """
-function dplanck(f, T=T_cmb)
-	x = h*f/(k*T)
-	dIdT = 2*x^4 * k^3*T^2/(h^2*c^2) / (4*sinh(x/2)^2) * 1e26
-	return dIdT
+function dplanck(f, T=2.72548)
+    c = ustrip(units.c_0)
+    k = ustrip(units.k_B)
+    h = ustrip(units.h)
+
+    x = h*f/(k*T)
+    dIdT = 2*x^4 * k^3*T^2/(h^2*c^2) / (4*sinh(x/2)^2) * 1e26
+    return dIdT
 end
