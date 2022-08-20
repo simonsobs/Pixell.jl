@@ -12,7 +12,7 @@ end
     Nhalf = N ÷ 2
     n = range(-Nhalf,Nhalf,length=N)
     r = r₀ .* 10 .^ (n .* L ./ N )
-    pl = Bolt.plan_fftlog(r, μ, q, 1.0; kropt=true)
+    pl = Pixell.plan_fftlog(r, μ, q, 1.0; kropt=true)
     aₙ = r .^ (μ + 1) .* exp.(-r.^2 / 2)
     y = similar(r, ComplexF64)
     fftdata = readdlm("data/fftlog_example.txt", ' ', Float64, '\n')
@@ -28,3 +28,4 @@ end
     ldiv!(y2, pl, y)
     @test all(abs.(y2 .- aₙ) .< 1e-15)
 end
+
