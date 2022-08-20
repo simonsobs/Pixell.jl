@@ -29,3 +29,13 @@ end
     @test all(abs.(y2 .- aₙ) .< 1e-15)
 end
 
+@testset begin
+    rft = RadialFourierTransform(n=256, pad=128)
+    rftdata = readdlm("data/radialfouriertransform.txt")
+
+    h = real2harm(rft, r -> 1/r)
+    @test maximum(abs.(1 .- h ./ rftdata[:,1])) < 1000eps()
+
+    h = harm2real(rft, r -> 1/r)
+    @test maximum(abs.(1 .- h ./ rftdata[:,2])) < 1000eps()
+end
