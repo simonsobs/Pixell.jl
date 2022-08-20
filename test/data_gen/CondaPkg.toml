@@ -1,3 +1,9 @@
 [deps]
 numpy = ""
 scipy = ""
+
+[pip.deps]
+beautifulsoup4 = ""
+webencodings = ""
+psutil = ""
+pixell = ""
