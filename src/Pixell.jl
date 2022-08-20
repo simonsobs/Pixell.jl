@@ -14,6 +14,9 @@ import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights
 using Libsharp
 import Libsharp: sharp_execute!
 import Healpix: Alm, map2alm, alm2map, alm2cl
+import AbstractFFTs: fftfreq, Plan, plan_fft!, plan_ifft!
+import LinearAlgebra: mul!, ldiv!
+import SpecialFunctions: loggamma
 
 include("enmap.jl")
 include("enmap_geom.jl")
