@@ -7,3 +7,5 @@
 debug/
 .vscode
 lcov.info
+test/data_gen/.CondaPkg
+test/Manifest.toml

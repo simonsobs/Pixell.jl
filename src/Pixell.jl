@@ -43,5 +43,4 @@ function __init__()
     Enplot.register_colors!()
 end
 
-
 end

@@ -1,7 +1,7 @@
 using Pixell
 using Test
 import Pixell: degree, arcminute
-
+using LinearAlgebra
 using DelimitedFiles
 
 include("test_geometry.jl")  # creating geometries and sky ↔ pix
