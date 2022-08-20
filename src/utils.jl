@@ -42,7 +42,7 @@ struct FFTLogPlan{T, OT, AA<:AbstractArray{Complex{T},1},
     ifftplan!::IPT
 end
 
-function plan_fftlog(r::AA, μ, q, k₀r₀=1.0;
+function plan_fftlog(r::AA, μ, q=0.0, k₀r₀=1.0;
                      kropt=true) where {T, AA<:AbstractArray{T,1}}
     logrmin = log(first(r))
     logrmax = log(last(r))
@@ -103,3 +103,49 @@ function ldiv!(Y, pl::FFTLogPlan, A)
     pl.ifftplan! * Y
     Y .*= (pl.r).^(pl.q)
 end
+
+
+struct RadialFourierTransform{T,A,AC,PL}
+    dln::T
+    l::A
+    r::A
+    pad::Int
+    pl::PL
+    fftbuffer::AC
+end
+
+function RadialFourierTransform(T=Float64; lrange=nothing, rrange=nothing, n=512, pad=256)
+
+    if isnothing(lrange) && isnothing(rrange)
+        lrange = (T(0.1), T(1e7))
+    elseif isnothing(lrange)
+        lrange = one(T) ./ reverse(rrange)
+    end
+    logl1, logl2 = log.(lrange)
+    logl0 = (logl2 + logl1) / 2
+    dlog = (logl2 - logl1) / n
+    i0 = (n+1)/2 + pad
+    l = @. exp(logl0 + ((1-i0):(n+2pad-i0)) * dlog)
+    r = one(T) ./ reverse(l)
+    fftbuffer = similar(r, complex(T))
+    pl = plan_fftlog(r, 0; kropt=false)
+    RadialFourierTransform(dlog, l, r, pad, pl, fftbuffer)
+end
+
+function real2harm(rft::RadialFourierTransform{T}, rprof) where T
+    fr = rprof.(rft.r) .* rft.r
+    rft_result_complex = rft.fftbuffer
+    mul!(rft_result_complex, rft.pl, fr)
+    rft_result_real = real.(reverse(rft_result_complex))  # allocate for the result
+    return (2 * T(π)) .* rft_result_real ./ rft.l
+end
+
+function harm2real(rft::RadialFourierTransform{T}, lprof) where T
+    revl = reverse(rft.l)
+    fl = lprof.(revl) .* revl ./ (2 * T(π))
+    rft_result_complex = rft.fftbuffer
+    ldiv!(rft_result_complex, rft.pl, fl)
+    rft_result_real = real.(rft_result_complex) # allocate for the result
+    return rft_result_real ./ rft.r
+end
+

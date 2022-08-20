@@ -1,30 +1,31 @@
 using Pixell
 using LinearAlgebra
-using SpecialFunctions
 using DelimitedFiles, Test
+# import Pixell: plan_fftlog
 
-
-N = 64
-μ = 0
-q = 0.0
-r₀ = 1.0
-L = 8.0
-Nhalf = N ÷ 2
-n = range(-Nhalf,Nhalf,length=N)
-r = r₀ .* 10 .^ (n .* L ./ N )
-pl = Pixell.plan_fftlog(r, μ, q, 1.0; kropt=true)
-aₙ = r .^ (μ + 1) .* exp.(-r.^2 / 2)
-y = similar(r, ComplexF64)
-fftdata = readdlm("data/fftlog_example.txt", ' ', Float64, '\n')
-
-# test forward
-mul!(y, pl, aₙ)
-f_ref = fftdata[:,2]
-@test all(abs.(y .- f_ref) .< 1e-15)
-@test isapprox(y, f_ref)
 
 ##
 using PythonCall
-scipy = pyimport("scipy")
-##
+using Test
+rft = RadialFourierTransform(n=256, pad=128)
 
+pixell_utils = pyimport("pixell.utils")
+np = pyimport("numpy")
+
+ref_rft = pixell_utils.RadialFourierTransform(n=256, pad=128)
+pyf = @pyeval `lambda x: 1/x`
+h = real2harm(rft, r -> 1/r)
+h_ref_1 = pyconvert(Vector, ref_rft.real2harm(pyf))
+maximum(abs.(1 .- h ./ h_ref_1)) < 1000eps()
+
+
+##
+h = harm2real(rft, r -> 1/r)
+h_ref_2 = pyconvert(Vector, ref_rft.harm2real(pyf))
+# 1 .- h ./ h_ref
+maximum(abs.(1 .- h ./ pyconvert(Vector, h_ref_2))) < 1000eps()
+
+##
+open("test/data/radialfouriertransform.txt", "w") do io
+    writedlm(io, [h_ref_1 h_ref_2])
+end
