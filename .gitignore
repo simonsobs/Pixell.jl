@@ -8,4 +8,5 @@ debug/
 .vscode
 lcov.info
 test/data_gen/.CondaPkg
+test/data_gen/*.py
 test/Manifest.toml

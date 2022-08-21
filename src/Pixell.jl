@@ -33,6 +33,7 @@ export read_map, write_map
 export Alm, map2alm, alm2cl, alm2map, alm2map!
 export distance_transform, ApproxSeqSDT, ExactSeqSDT, BruteForceSDT
 export dplanck, RadialFourierTransform, real2harm, harm2real
+export FFTLogPlan
 
 # set up some shortcuts for common angles
 const radian = Unitful.rad
