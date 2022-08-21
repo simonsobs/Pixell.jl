@@ -7,12 +7,20 @@ at frequencies f and temperature T, in units of Jy/sr/K.
 
 A blackbody has intensity ``I = 2hf^3/c^2/(\exp{hf/kT}-1) = V/(\exp{x}-1)``
 with ``V = 2hf^3/c^2``, ``x = hf/kT``.
-``dI/dx = -V/(\exp{x}-1)^2 * \exp{x}``
-``dI/dT = dI/dx * dx/dT``
-``      = 2hf^3/c^2/(\exp{x}-1)^2*\exp{x} * hf/k / T^2``
-``      = 2*h^2*f^4/c^2/k/T^2 * \exp{x}/(\exp{x}-1)^2``
-``      = 2*x^4 * k^3*T^2/(h^2*c^2) * \exp{x}/(\exp{x}-1)^2``
-``      = .... /(4*sinh(x/2)^2)``
+
+```math
+dI/dx = -V/(\exp{x}-1)^2 * \exp{x}
+```
+
+```math
+\begin{aligned}
+dI/dT &= dI/dx * dx/dT \\
+      &= 2hf^3/c^2/(\exp{x}-1)^2*\exp{x} * hf/k / T^2 \\
+      &= 2*h^2*f^4/c^2/k/T^2 * \exp{x}/(\exp{x}-1)^2 \\
+      &= 2*x^4 * k^3*T^2/(h^2*c^2) * \exp{x}/(\exp{x}-1)^2 \\
+      &= \dots /(4* \sinh(x/2)^2)
+\end{aligned}
+```
 """
 function dplanck(f, T=2.72548)
     c = ustrip(consts.c_0)
@@ -27,6 +35,9 @@ end
 
 
 # utilities for applying an FFTLog transformation
+"""
+FFTLog from Hamilton 2000. Construct this type with `plan_fftlog`.
+"""
 struct FFTLogPlan{T, OT, AA<:AbstractArray{Complex{T},1},
                   AAR<:AbstractArray{T,1}, PT<:Plan, IPT<:Plan}
     L::T
@@ -105,6 +116,7 @@ function ldiv!(Y, pl::FFTLogPlan, A)
 end
 
 
+# adapted from pixell
 struct RadialFourierTransform{T,A,AC,PL}
     dln::T
     l::A
@@ -149,3 +161,6 @@ function harm2real(rft::RadialFourierTransform{T}, lprof) where T
     return rft_result_real ./ rft.r
 end
 
+function unpad(rft::RadialFourierTransform, arrs...)
+    map(x->x[begin+rft.pad:end-rft.pad], arrs)
+end

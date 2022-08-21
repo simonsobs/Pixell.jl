@@ -6,7 +6,7 @@ CurrentModule = Pixell
 
 If you're new to the [Julia language](https://julialang.org/), my favorite tutorial is this [Introduction to Julia for Quantitative Economics](https://julia.quantecon.org/intro.html). Sections 1-13 are the most relevant if you are an astronomer, but some of later numerical techniques can also be useful. Computing clusters will often have a Julia module; make sure you load a Julia version 1.6 or later. 
 
-For your development computer, download the [precompiled binaries](https://julialang.org/downloads/) and add the Julia executable to your `$PATH`. Do not use a package manager to install Julia. The Julia compiler has a heavily modified glibc, which many package managers misconfigure (such as the AUR). This problem is also faced by Rust.
+For your development computer, download the [precompiled binaries](https://julialang.org/downloads/) and add the Julia executable to your `$PATH`. Do not use a package manager to install Julia. The Julia compiler has a heavily modified glibc, which many package managers misconfigure (such as the AUR). Rust also faces this problem.
 
 
 ## Package development
