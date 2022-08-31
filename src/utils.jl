@@ -120,6 +120,7 @@ end
 struct RadialFourierTransform{T,A,AC,PL}
     dln::T
     l::A
+    revl::A
     r::A
     pad::Int
     pl::PL
@@ -141,24 +142,33 @@ function RadialFourierTransform(T=Float64; lrange=nothing, rrange=nothing, n=512
     r = one(T) ./ reverse(l)
     fftbuffer = similar(r, complex(T))
     pl = plan_fftlog(r, 0; kropt=false)
-    RadialFourierTransform(dlog, l, r, pad, pl, fftbuffer)
+    RadialFourierTransform(dlog, l, reverse(l), r, pad, pl, fftbuffer)
 end
 
-function real2harm(rft::RadialFourierTransform{T}, rprof) where T
-    fr = rprof.(rft.r) .* rft.r
+
+
+function real2harm(rft::RadialFourierTransform{T}, rprof::AbstractArray) where T
+    fr = rprof .* rft.r
     rft_result_complex = rft.fftbuffer
     mul!(rft_result_complex, rft.pl, fr)
     rft_result_real = real.(reverse(rft_result_complex))  # allocate for the result
     return (2 * T(π)) .* rft_result_real ./ rft.l
 end
 
-function harm2real(rft::RadialFourierTransform{T}, lprof) where T
-    revl = reverse(rft.l)
-    fl = lprof.(revl) .* revl ./ (2 * T(π))
+function real2harm(rft::RadialFourierTransform{T}, rprof) where T
+    real2harm(rft, rprof.(rft.r))
+end
+
+function harm2real(rft::RadialFourierTransform{T}, lprof::AbstractArray) where T
+    fl = lprof .* rft.revl ./ (2 * T(π))
     rft_result_complex = rft.fftbuffer
     ldiv!(rft_result_complex, rft.pl, fl)
     rft_result_real = real.(rft_result_complex) # allocate for the result
     return rft_result_real ./ rft.r
+end
+
+function harm2real(rft::RadialFourierTransform{T}, lprof) where T
+    harm2real(rft, lprof.(rft.revl))
 end
 
 function unpad(rft::RadialFourierTransform, arrs...)

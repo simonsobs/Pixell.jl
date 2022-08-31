@@ -1,3 +1,5 @@
+# using Test, DelimitedFiles, LinearAlgebra, Pixell
+
 @testset "dplanck" begin
     @test dplanck(98e9) ≈ 231581854 atol = 100
     @test dplanck(150e9) ≈ 398477703 atol = 100
@@ -38,4 +40,12 @@ end
 
     h = harm2real(rft, r -> 1/r)
     @test maximum(abs.(1 .- h ./ rftdata[:,2])) < 1000eps()
+
+    
+    h = real2harm(rft, 1 ./ rft.r)
+    @test maximum(abs.(1 .- h ./ rftdata[:,1])) < 1000eps()
+
+    h = harm2real(rft, 1 ./ rft.revl)
+    @test maximum(abs.(1 .- h ./ rftdata[:,2])) < 1000eps()
+
 end
