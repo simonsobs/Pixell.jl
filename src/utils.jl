@@ -171,6 +171,11 @@ function harm2real(rft::RadialFourierTransform{T}, lprof) where T
     harm2real(rft, lprof.(rft.revl))
 end
 
-function unpad(rft::RadialFourierTransform, arrs...)
-    map(x->x[begin+rft.pad:end-rft.pad], arrs)
+
+function unpad(rft::RadialFourierTransform, x::AbstractVector)
+    return x[begin+rft.pad:end-rft.pad]
+end
+
+function unpad(rft::RadialFourierTransform, args...)
+    map(x->x[begin+rft.pad:end-rft.pad], args)
 end
