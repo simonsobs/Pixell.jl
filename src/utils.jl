@@ -127,7 +127,7 @@ struct RadialFourierTransform{T,A,AC,PL}
     fftbuffer::AC
 end
 
-function RadialFourierTransform(T=Float64; lrange=nothing, rrange=nothing, n=512, pad=256)
+function RadialFourierTransform(T=Float64; lrange=nothing, rrange=nothing, n=512, pad=256, q=0, kropt=true)
 
     if isnothing(lrange) && isnothing(rrange)
         lrange = (T(0.1), T(1e7))
@@ -141,7 +141,7 @@ function RadialFourierTransform(T=Float64; lrange=nothing, rrange=nothing, n=512
     l = @. exp(logl0 + ((1-i0):(n+2pad-i0)) * dlog)
     r = one(T) ./ reverse(l)
     fftbuffer = similar(r, complex(T))
-    pl = plan_fftlog(r, 0; kropt=false)
+    pl = plan_fftlog(r, q; kropt=kropt)
     RadialFourierTransform(dlog, l, reverse(l), r, pad, pl, fftbuffer)
 end
 
