@@ -465,3 +465,19 @@ function sliced_wcs(wcs::CarClenshawCurtis{T}, cdelt′, crpix′) where T
     new_wcs = CarClenshawCurtis{T}(cdelt′, crpix′, wcs.crval, wcs.unit)
     return new_wcs
 end
+
+function pad(shape, wcs::CarClenshawCurtis{T}, npix::Int) where T
+    new_shape = shape .+ 2npix
+    new_wcs = CarClenshawCurtis{T}(
+        wcs.cdelt, 
+        wcs.crpix .+ npix, 
+        wcs.crval, 
+        wcs.unit)  # degree conversion
+    return new_shape, new_wcs
+end
+
+function pad(m::Enmap{T,N,AA}, npix::Int) where {T,N,AA}
+    new_shape, new_wcs = pad(size(m), m.wcs, npix)
+    arr = AA(undef, new_shape)
+    return Enmap(arr, new_wcs)
+end

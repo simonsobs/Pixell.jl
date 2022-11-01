@@ -27,7 +27,7 @@ include("transform_distance.jl")
 include("utils.jl")
 
 export Enmap, CarClenshawCurtis, getwcs
-export geometry, fullsky_geometry, slice_geometry
+export geometry, fullsky_geometry, slice_geometry, pad
 export pix2sky, pix2sky!, sky2pix, sky2pix!, skyarea, pixareamap, pixareamap!
 export read_map, write_map
 export Alm, map2alm, alm2cl, alm2map, alm2map!
