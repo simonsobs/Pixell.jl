@@ -35,8 +35,8 @@ end
 """
     pix2sky(m::Enmap, pixcoords)
 
-Convert 1-indexed pixels to sky coordinates. The output sky coordinates are determined by WCS,
-but usually are in units of degrees. 
+Convert 1-indexed pixels to sky coordinates. While typically WCS can specify custom units, Pixell 
+uses radians throughout.
 
 # Arguments:
 - `m::Enmap`: the map that provides a coordinate system
@@ -49,10 +49,10 @@ but usually are in units of degrees.
 # Examples
 ```julia-repl
 julia> shape, wcs = fullsky_geometry(deg2rad(1))
-julia> pix2sky(shape, wcs [1.0, 1.0])
+julia> pix2sky(shape, wcs, [1.0, 1.0])
 2-element Vector{Float64}:
- 180.0
- -90.0
+ -3.141592653589793
+ -1.5707963267948966
 ```
 """
 function pix2sky end
@@ -125,8 +125,8 @@ end
 """
     pix2sky!(m::Enmap, pixcoords, skycoords)
 
-Convert 1-indexed pixels to sky coordinates, in-place. The output sky coordinates are 
-determined by WCS, but usually are in units of degrees. 
+Convert 1-indexed pixels to sky coordinates, in-place. While typically WCS can specify custom units, Pixell 
+uses radians throughout.
 
 # Arguments:
 - `m::Enmap`: the map that provides a coordinate system
@@ -222,8 +222,8 @@ end
 """
     sky2pix(m::Enmap, skycoords)
 
-Convert sky coordinates to 1-indexed pixels. The input sky coordinates are determined by WCS,
-but usually are in units of degrees. 
+Convert sky coordinates to 1-indexed pixels. While typically WCS can specify custom units, Pixell 
+uses radians throughout.
 
 # Arguments:
 - `m::Enmap`: the map to obtain the coordinates from
@@ -247,8 +247,8 @@ function sky2pix end
 """
     sky2pix!(m::Enmap, skycoords, pixcoords)
 
-Convert sky coordinates to 1-indexed pixels, in-place. The input sky coordinates are 
-determined by WCS, but usually are in units of degrees. 
+Convert sky coordinates to 1-indexed pixels, in-place. While typically WCS can specify custom units, Pixell 
+uses radians throughout.
 
 # Arguments:
 - `m::Enmap`: the map that provides a coordinate system
@@ -318,7 +318,7 @@ pixel indices will be returned.
 # Examples
 ```julia-repl
 julia> shape, wcs = fullsky_geometry(deg2rad(1))
-julia> sky2pix(shape, wcs, 30.0, 80.0)
+julia> sky2pix(shape, wcs, deg2rad(30.0), deg2rad(80.0))
 (151.0, 171.0)
 ```
 """
