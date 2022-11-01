@@ -162,3 +162,18 @@ end
     imap.wcs.cunit = ["mas", "mas"]
     @test Pixell.getunit(imap.wcs) ≈ π / 180 / 60 / 60 / 1000
 end
+
+##
+@testset "Enmap pad" begin
+    shape0, wcs0 = fullsky_geometry(π/180)
+    m = Enmap(rand(shape0...), wcs0)
+
+    NPAD = 5
+    m_pad = pad(m, NPAD)
+    m_sliced = m_pad[(begin+NPAD):(end-NPAD), (begin+NPAD):(end-NPAD)]
+    wcs = m_sliced.wcs
+    
+    @test collect(wcs0.cdelt) ≈ collect(wcs.cdelt)
+    @test collect(wcs0.crpix) ≈ collect(wcs.crpix)
+    @test collect(wcs0.crval) ≈ collect(wcs.crval)
+end
