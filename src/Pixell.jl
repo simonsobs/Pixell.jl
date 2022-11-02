@@ -34,7 +34,7 @@ include("utils.jl")
 
 export Enmap, CarClenshawCurtis, Gnomonic, getwcs
 export geometry, fullsky_geometry, slice_geometry, pad, SkyBoundingBox
-export pix2sky, pix2sky!, sky2pix, sky2pix!, skyarea, pixareamap, pixareamap!
+export pix2sky, pix2sky!, sky2pix, sky2pix!, skyarea, pixareamap, pixareamap!, posmap
 export read_map, write_map
 export Alm, map2alm, alm2cl, alm2map, alm2map!
 export distance_transform, ApproxSeqSDT, ExactSeqSDT, BruteForceSDT
