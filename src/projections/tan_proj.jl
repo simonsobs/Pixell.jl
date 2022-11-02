@@ -60,15 +60,15 @@ function pix2sky(shape, wcs::Gnomonic{T}, ra_pixel, dec_pixel; safe=false) where
     scale = one(T) / first(wcs.cdelt)
     unit = getunit(wcs)
     α₀, δ₀ = deg2rad.(wcs.crval)
-    X = (ra_pixel - wcs.crpix[1]) * unit / scale
-    Y = (dec_pixel - wcs.crpix[2]) * unit / scale
+    X = (wcs.crpix[1] - ra_pixel) * unit / scale
+    Y = (wcs.crpix[2] - dec_pixel) * unit / scale
     
     D = atan(√(X^2 + Y^2))
-    B = atan(-X/Y)
+    B = atan(-X, Y)
     XX = sin(δ₀) * sin(D) * cos(B) + cos(δ₀) * cos(D)
     YY = sin(D) * sin(B)
     
-    α = α₀ + atan(YY/XX)
+    α = α₀ + atan(YY, XX)
     δ = asin(sin(δ₀) * cos(D) - cos(δ₀) * sin(D) * cos(B))
 
     return α, δ
