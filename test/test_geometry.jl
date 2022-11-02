@@ -91,7 +91,7 @@ end
 ##
 @testset "Enmap Gnomonic (Tangent Plane) projection" begin
     shape = (1827, 1825)
-    wcs = WCSTransform(2;
+    wcs = Pixell.WCS.WCSTransform(2;
                             cdelt = [0.00833333, 0.00833333],
                             ctype = ["RA---TAN", "DEC--TAN"],
                             crpix = [913.36495097, 921.03165237],
