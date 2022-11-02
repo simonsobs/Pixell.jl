@@ -89,6 +89,28 @@ wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
 end
 
 ##
+@testset "Enmap Gnomonic (Tangent Plane) projection" begin
+    shape = (1827, 1825)
+    wcs = WCSTransform(2;
+                            cdelt = [0.00833333, 0.00833333],
+                            ctype = ["RA---TAN", "DEC--TAN"],
+                            crpix = [913.36495097, 921.03165237],
+                            crval = [97.5041656,  -7.45833685])
+
+    w2 = convert(Gnomonic{Float64}, wcs)
+    aref, dref = pix2sky(shape, wcs, 1, 10)
+    α′, δ′ = pix2sky(shape, w2, 1, 10)
+    @test α′ ≈ aref
+    @test δ′ ≈ dref
+
+    a, d = 1.5668277750221558, -0.2607686217851525
+    i, j = sky2pix(shape, wcs, a, d)
+    i′, j′ = sky2pix(shape, w2, a, d)
+    @test i′ ≈ i
+    @test j′ ≈ j
+end
+
+##
 @testset "Enmap sky2pix and pix2sky WCSlib fallbacks" begin
     shape, wcs = fullsky_geometry(Pixell.WCS.WCSTransform, deg2rad(1))
     m = Enmap(rand(shape...), wcs)
