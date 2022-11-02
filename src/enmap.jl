@@ -23,56 +23,10 @@ Base.parent(x::Enmap) = x.data
 getwcs(x::Enmap) = x.wcs
 getwcs(x) = NoWCS()
 
-# retrieve nonallocating WCS information. returns tuples of cdelt, crpix, crval
-function unsafe_wcs_read_pair(wcs, sym::Symbol)
-    field = WCS.getfield(wcs, sym)
-    return unsafe_load(field, 1), unsafe_load(field, 2)
-end
-getcdelt(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :cdelt)
-getcrpix(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crpix)
-getcrval(wcs::WCSTransform) = unsafe_wcs_read_pair(wcs, :crval)
 
-"""
-Fast custom WCS structure.
-"""
-struct CarClenshawCurtis{T} <: AbstractWCSTransform
-    cdelt::Tuple{T,T}
-    crpix::Tuple{T,T}
-    crval::Tuple{T,T}
-    unit::T  # conversion factor to radians
-end
-getunit(T::Type{<:Real}, wcs::CarClenshawCurtis) = T(wcs.unit)
-getcdelt(wcs::CarClenshawCurtis) = wcs.cdelt
-getcrpix(wcs::CarClenshawCurtis) = wcs.crpix
-getcrval(wcs::CarClenshawCurtis) = wcs.crval
-
-Base.copy(w::W) where {W<:CarClenshawCurtis} = w  # CarClenshawCurtis is fully immutable
-
-function Base.convert(::Type{CarClenshawCurtis{T}}, w0::WCSTransform) where T
-    return CarClenshawCurtis{T}(
-        T.(getcdelt(w0)), T.(getcrpix(w0)), T.(getcrval(w0)), getunit(T, w0))
-end
-
-function Base.convert(::Type{WCSTransform}, w0::CarClenshawCurtis{T}) where T
-    return WCSTransform(2;
-        ctype = ["RA---CAR", "DEC--CAR"],
-        cdelt = collect(getcdelt(w0)),
-        crpix = collect(getcrpix(w0)),
-        crval = collect(getcrval(w0)))
-end
-
-# this kind of WCS only has two spatial dimensions. this check should be constant-propagated
-function Base.getproperty(wcs::CarClenshawCurtis, k::Symbol)
-    if k == :naxis
-        return 2
-    end
-    return getfield(wcs, k)
-end
-
-function Base.show(io::IO, wcs::CarClenshawCurtis{T}) where T
-    expr = join(["$k=$(getproperty(wcs, Symbol(k)))"
-                 for k in ["naxis","cdelt","crval","crpix"]], ",")
-    print(io, "CarClenshawCurtis{$(T)}($expr)")
+function Base.show(io::IO, imap::Enmap)
+    expr = "Enmap(shape=$(size(imap)),wcs=$(imap.wcs))"
+    print(io, expr)
 end
 
 
@@ -222,44 +176,6 @@ function Base.copy(bc::Broadcast.Broadcasted{<:EnmapStyle{S}}) where {S}
 end
 
 Base.deepcopy(x::Enmap) = Enmap(deepcopy(parent(x)), deepcopy(getwcs(x)))
-
-# internal function for getting the unit of the angles in the WCS header
-# multiply the result of this function with your angle to get radians.
-getunit(wcs::AbstractWCSTransform) = getunit(Float64, wcs)
-function getunit(T::Type{<:Real}, wcs::WCSTransform)
-    cunit1, cunit2 = wcs.cunit
-    @assert cunit1 == cunit2 "Units of RA and DEC must be the same."
-    cunit = cunit1
-    if cunit == "deg"
-        return T(π/180)
-    elseif cunit == "rad"
-        return one(T)
-    elseif cunit == "arcmin"
-        return T(π/180/60)
-    elseif cunit == "arcsec"
-        return T(π/180/60/60)
-    elseif cunit == "mas"
-        return T(π/180/60/60/1000)
-    end
-    @warn "Can't recognize the WCS unit: $(cunit). Assuming degrees."
-    return T(π/180)  # give up and return degrees
-end
-
-function Base.show(io::IO, imap::Enmap)
-    expr = "Enmap(shape=$(size(imap)),wcs=$(imap.wcs))"
-    print(io, expr)
-end
-
-# Select the first n axes, should move to WCS.jl at some point
-function sub(src::WCS.WCSTransform, n::Int)
-    dst = WCSTransform(n)
-    nsub = Array{Cint}([n])
-    axes = Array{Cint}(collect(1:n))
-    ccall((:wcssub, libwcs), Cint,
-          (Cint, Ref{WCSTransform}, Ptr{Cint}, Ptr{Cint}, Ref{WCSTransform}),
-          0, src, nsub, axes, dst)
-    dst
-end
 
 function resolve_polcconv!(data::A, header::FITSIO.FITSHeader, sel; verbose=true) where {A<:AbstractArray}
     naxis = header["NAXIS"]
