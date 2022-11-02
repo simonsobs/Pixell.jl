@@ -96,22 +96,27 @@ end
         ctype = ["RA---TAN", "DEC--TAN"],
         crpix = [913.3649509696, 921.0316523678962],
         crval = [97.50416559979826, -7.45833685170031])
-
+    
     w2 = convert(Gnomonic{Float64}, wcs)
     aref, dref = pix2sky(shape, wcs, 1, 10)
     α′, δ′ = pix2sky(shape, w2, 1, 10)
     @test α′ ≈ aref
     @test δ′ ≈ dref
-
+    
     a, d = 1.5668277750221558, -0.2607686217851525
     i, j = sky2pix(shape, wcs, a, d)
     i′, j′ = sky2pix(shape, w2, a, d)
     @test i′ ≈ i
     @test j′ ≈ j
-
+    
     α, δ = pix2sky(shape, w2, 31, 11)
     @test α ≈ 1.5708104890480863 
     @test δ ≈ -0.25962469841593006 
+    
+    a0, d0 = posmap(shape, wcs)
+    a, d = posmap(shape, w2)
+    @test sum(abs.(a0 .- a)) ≈ 0.0 atol=1e-9
+    @test sum(abs.(d0 .- d)) ≈ 0.0 atol=1e-9
 end
 
 ##
