@@ -92,10 +92,10 @@ end
 @testset "Enmap Gnomonic (Tangent Plane) projection" begin
     shape = (1827, 1825)
     wcs = Pixell.WCS.WCSTransform(2;
-                            cdelt = [0.00833333, 0.00833333],
-                            ctype = ["RA---TAN", "DEC--TAN"],
-                            crpix = [913.36495097, 921.03165237],
-                            crval = [97.5041656,  -7.45833685])
+        cdelt = [0.008333333333333333, 0.008333333333333333],
+        ctype = ["RA---TAN", "DEC--TAN"],
+        crpix = [913.3649509696, 921.0316523678962],
+        crval = [97.50416559979826, -7.45833685170031])
 
     w2 = convert(Gnomonic{Float64}, wcs)
     aref, dref = pix2sky(shape, wcs, 1, 10)
@@ -108,6 +108,10 @@ end
     i′, j′ = sky2pix(shape, w2, a, d)
     @test i′ ≈ i
     @test j′ ≈ j
+
+    α, δ = pix2sky(shape, w2, 31, 11)
+    @test α ≈ 1.5708104890480863 
+    @test δ ≈ -0.25962469841593006 
 end
 
 ##
