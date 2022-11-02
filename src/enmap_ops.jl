@@ -192,3 +192,18 @@ function in(skycoords::Tuple{T,T}, bbox::SkyBoundingBox) where T
     b = bbox
     return (b.α_min ≤ α ≤ b.α_max) && (b.δ_min ≤ δ ≤ b.δ_max)
 end
+
+function posmap(shape::Tuple{Int,Int}, wcs::AbstractWCSTransform)
+    α_map = Enmap(zeros(shape), wcs)
+    δ_map = Enmap(zeros(shape), wcs)
+
+    for j in axes(α_map,2)
+        for i in axes(α_map,1)
+            α, δ = pix2sky(α_map, i, j)
+            α_map[i,j] = α
+            δ_map[i,j] = δ
+        end
+    end
+
+    α_map, δ_map
+end

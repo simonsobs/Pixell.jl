@@ -41,7 +41,7 @@ function Base.show(io::IO, wcs::Gnomonic{T}) where T
     print(io, "Gnomonic{$(T)}($expr)")
 end
 
-function sky2pix(shape, wcs::Gnomonic{T}, ra, dec) where T
+function sky2pix(shape, wcs::Gnomonic{T}, ra, dec; safe=false) where T
     scale = one(T) / first(wcs.cdelt)
     unit = getunit(wcs)
     α₀, δ₀ = deg2rad.(wcs.crval)
@@ -56,7 +56,7 @@ function sky2pix(shape, wcs::Gnomonic{T}, ra, dec) where T
     return X, Y
 end
 
-function pix2sky(shape, wcs::Gnomonic{T}, ra_pixel, dec_pixel) where T
+function pix2sky(shape, wcs::Gnomonic{T}, ra_pixel, dec_pixel; safe=false) where T
     scale = one(T) / first(wcs.cdelt)
     unit = getunit(wcs)
     α₀, δ₀ = deg2rad.(wcs.crval)
