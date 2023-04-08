@@ -177,3 +177,15 @@ end
     @test collect(wcs0.crpix) ≈ collect(wcs.crpix)
     @test collect(wcs0.crval) ≈ collect(wcs.crval)
 end
+
+@testset "collapse to parent array for enmap view when slicing ra or dec" begin
+    shape0, wcs0 = fullsky_geometry(π/180)
+    m = Enmap(rand(shape0...), wcs0)
+    m[1,5:10] .= 1
+
+    shape0, wcs0 = fullsky_geometry(π/180)
+    m = Enmap(rand(shape0...,2), wcs0)
+    mv = @view m[1,:,1]
+    @test typeof(mv) == SubArray{Float64, 1, Array{Float64, 3}, 
+        Tuple{Int64, Base.Slice{Base.OneTo{Int64}}, Int64}, true}
+end
