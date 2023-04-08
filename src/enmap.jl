@@ -35,23 +35,21 @@ Base.size(x::Enmap) = size(parent(x))
 Base.axes(x::Enmap) = Base.axes(parent(x))
 Base.IndexStyle(x::Enmap) = IndexStyle(parent(x))
 
-@propagate_inbounds function Base.view(x::Enmap, idxs::ViewIndex...) 
-    new_shape, new_wcs = slice_geometry(x, idxs...)
-    Enmap(view(parent(x), idxs...), new_wcs)
-end
-@propagate_inbounds function Base.view(x::Enmap, idxs::Union{ViewIndex,AbstractCartesianIndex}...) 
-    new_shape, new_wcs = slice_geometry(x, idxs...)
-    Enmap(view(parent(x), idxs...), new_wcs)
-end
+const NotIntIndex = Union{AbstractArray,AbstractCartesianIndex,Colon}
+const AnyIndex = Union{ViewIndex,AbstractCartesianIndex,Colon}
 @propagate_inbounds function Base.view(x::Enmap, idxs...) 
     new_shape, new_wcs = slice_geometry(x, idxs...)
     Enmap(view(parent(x), idxs...), new_wcs)
 end
 
-# totally give up if the RA and DEC slices are eliminated, and just return a view of the parent
-@propagate_inbounds Base.view(x::Enmap, ix::Integer, idxs...) = view(parent(x), ix, idxs...)
-@propagate_inbounds Base.view(x::Enmap, ix, iy::Integer, idxs...) = view(parent(x), ix, iy, idxs...)
 
+# totally give up if the RA and DEC slices are eliminated, and just return a view of the parent
+@propagate_inbounds Base.view(x::Enmap, ix::Int, iy::NotIntIndex, idxs::AnyIndex...) = 
+    view(parent(x), ix, iy, idxs...)
+@propagate_inbounds Base.view(x::Enmap, ix::NotIntIndex, iy::Int, idxs::AnyIndex...) = 
+    view(parent(x), ix, iy, idxs...)
+@propagate_inbounds Base.view(x::Enmap, ix::Int, iy::Int, idxs::AnyIndex...) = 
+    view(parent(x), ix, iy, idxs...)
 
 @propagate_inbounds Base.getindex(x::Enmap, i::Int...) = getindex(parent(x), i...)
 @propagate_inbounds function Base.getindex(x::Enmap, i...)
