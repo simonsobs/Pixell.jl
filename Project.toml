@@ -1,7 +1,7 @@
 name = "Pixell"
 uuid = "d4cbf8b2-a14f-4080-9f5e-d5a64ada768e"
 authors = ["Zack Li", "Yilun Guan"]
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
