@@ -1,0 +1,5 @@
+article#documenter-page > svg {
+    display: block;
+    width:80%;
+    height: auto;
+}
