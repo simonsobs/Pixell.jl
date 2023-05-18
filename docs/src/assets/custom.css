@@ -3,3 +3,10 @@ article#documenter-page > svg {
     width:80%;
     height: auto;
 }
+
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
