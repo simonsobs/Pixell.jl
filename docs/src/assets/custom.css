@@ -4,6 +4,15 @@ article#documenter-page > svg {
     height: auto;
 }
 
+article#documenter-page > p > img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width:50%;
+    height: auto;
+    padding: 1em;
+}
+
 .center {
     display: block;
     margin-left: auto;

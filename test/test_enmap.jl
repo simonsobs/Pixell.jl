@@ -148,7 +148,7 @@ end
     @test collect(Pixell.getcrpix(imap.wcs)) == imap.wcs.crpix
     @test collect(Pixell.getcdelt(imap.wcs)) == imap.wcs.cdelt
 
-    wcs = convert(CarClenshawCurtis{Float64}, imap.wcs)
+    wcs = convert(CAR{Float64}, imap.wcs)
     @test Pixell.getcrval(imap.wcs) == wcs.crval
     @test Pixell.getcrpix(imap.wcs) == wcs.crpix
     @test Pixell.getcdelt(imap.wcs) == wcs.cdelt

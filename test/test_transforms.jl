@@ -27,7 +27,7 @@ end
 
     box = [10   -10;           # RA
            -5     5] * Pixell.degree  # DEC
-    shape, wcs = geometry(CarClenshawCurtis, box, 1.0 * Pixell.degree)
+    shape, wcs = geometry(CAR, box, 1.0 * Pixell.degree)
     m = Enmap(zeros(shape), wcs)
     gen_spin0!(m, 2.5)
     alms = map2alm(m; lmax=100)

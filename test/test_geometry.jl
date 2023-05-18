@@ -3,7 +3,7 @@ using Test, DelimitedFiles
 import Pixell: degree, arcminute
 
 @testset "Enmap geometry" begin
-    for W in (Pixell.WCS.WCSTransform, CarClenshawCurtis{Float64})
+    for W in (Pixell.WCS.WCSTransform, CAR{Float64})
         shape, wcs = fullsky_geometry(W, deg2rad(1 / 60))
         @test collect(wcs.cdelt) ≈ [-0.016666666666666666, 0.016666666666666666]
         @test collect(wcs.crpix) ≈ [10800.5, 5401.0]
@@ -45,7 +45,7 @@ end
 ##
 wrap(ra_dec_vec) = [mod(ra_dec_vec[1], 2π), mod(ra_dec_vec[2], π)]
 @testset "Enmap sky2pix and pix2sky" begin
-    for W in (Pixell.WCS.WCSTransform, CarClenshawCurtis{Float64})
+    for W in (Pixell.WCS.WCSTransform, CAR{Float64})
         shape, wcs = fullsky_geometry(W, deg2rad(1))
         m = Enmap(rand(shape...), wcs)
         # in this test, wrap to angles in [0, 2π] and [0, π] for RA and DEC
@@ -152,7 +152,7 @@ end
 
     box = [10   -10;           # RA
            -5     5] * degree  # DEC
-    shape, wcs = geometry(CarClenshawCurtis, box, 1 * degree)
+    shape, wcs = geometry(CAR, box, 1 * degree)
     m = Enmap(ones(shape), wcs)
     @test [sky2pix(m, deg2rad(ra), 0.0; safe=true)[1]
         for ra in 178:182] ≈ [-167., -168., -169.,  190.,  189.]
@@ -163,7 +163,7 @@ end
 @testset "sky2pix every single pixel" begin
     box = [10   -10;           # RA
         -5     5] * degree  # DEC
-    shape, wcs = geometry(CarClenshawCurtis, box, 1 * degree)
+    shape, wcs = geometry(CAR, box, 1 * degree)
     m = Enmap(ones(shape), wcs)
     for i in 1:shape[1]
         for j in 1:shape[2]
@@ -182,7 +182,7 @@ end
 
     box = [179   -179;           # RA
            -89     89] * degree  # DEC
-    shape, wcs = geometry(CarClenshawCurtis, box, 1 * degree)
+    shape, wcs = geometry(CAR, box, 1 * degree)
     m = Enmap(ones(shape), wcs)
     for i in 1:shape[1]
         for j in 1:shape[2]
@@ -234,7 +234,7 @@ end
 
 ## 
 @testset "slice_geometry" begin
-    for W in (Pixell.WCS.WCSTransform, CarClenshawCurtis{Float64})
+    for W in (Pixell.WCS.WCSTransform, CAR{Float64})
         shape0, wcs0 = fullsky_geometry(W, deg2rad(1))
         shape, wcs = slice_geometry(shape0, wcs0, 1:3, 11:-1:3)
         @test (3, 9) == shape
@@ -270,7 +270,7 @@ end
 
 ## 
 @testset "pixel skyareas" begin
-    for W in (Pixell.WCS.WCSTransform, CarClenshawCurtis{Float64})
+    for W in (Pixell.WCS.WCSTransform, CAR{Float64})
         shape, wcs = fullsky_geometry(W, deg2rad(1))
         @test skyarea(shape, wcs) ≈ 4π
 
@@ -279,7 +279,7 @@ end
 
         box = [10   -10;           # RA
                -5     5] * degree  # DEC
-        shape, wcs = geometry(CarClenshawCurtis, box, (1/60) * degree)
+        shape, wcs = geometry(CAR, box, (1/60) * degree)
         @test skyarea(shape, wcs) ≈ 0.06084618627514243
     end
 end
@@ -288,7 +288,7 @@ end
     box = [10  -10;           # RA
            -5    5] * Pixell.degree  # DEC
 
-    boxgeom = geometry(CarClenshawCurtis{Float64}, box, 5. * Pixell.arcminute)
+    boxgeom = geometry(CAR{Float64}, box, 5. * Pixell.arcminute)
     fullgeom = fullsky_geometry(π/180)
 
     pm_py_full = readdlm("data/fullsky_pixareas.dat")

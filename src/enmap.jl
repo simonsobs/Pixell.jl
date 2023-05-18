@@ -1,4 +1,5 @@
 using Base: ViewIndex, @propagate_inbounds, AbstractCartesianIndex
+import Base.Broadcast: BroadcastStyle
 
 """
 Map type, contains an AbstractArray and a WCS object, but behaves like the
@@ -85,19 +86,17 @@ Base.stride(x::Enmap, i::Int) = stride(parent(x), i)
 # whatever array type the meta array wraps
 struct EnmapStyle{S} <: Broadcast.BroadcastStyle end
 EnmapStyle(s::S) where {S<:Broadcast.BroadcastStyle} = EnmapStyle{S}()
-Base.Broadcast.BroadcastStyle(::Type{<:Enmap{T,N,A}}) where {T,N,A} =
-    enmapstyle(Broadcast.BroadcastStyle(A))
+BroadcastStyle(::Type{<:Enmap{T,N,A}}) where {T,N,A} =
+    enmapstyle(BroadcastStyle(A))
 Base.Broadcast.BroadcastStyle(a::EnmapStyle{A}, b::EnmapStyle{B}) where {A,B} =
-    enmapstyle(Broadcast.BroadcastStyle(A(), B()))
-function Base.Broadcast.BroadcastStyle(a::EnmapStyle{A}, b::B) where
-{A,B<:Broadcast.BroadcastStyle}
-
+    enmapstyle(BroadcastStyle(A(), B()))
+function Base.Broadcast.BroadcastStyle(a::EnmapStyle{A}, b::B) where {A,B<:BroadcastStyle}
     a_ = A()
-    left = enmapstyle(Broadcast.BroadcastStyle(a_, b))
+    left = enmapstyle(BroadcastStyle(a_, b))
     if !(left isa Broadcast.Unknown)
         left
     else
-        enmapstyle(Broadcast.BroadcastStyle(b, a_))
+        enmapstyle(BroadcastStyle(b, a_))
     end
 end
 enmapstyle(x) = EnmapStyle(x)
@@ -216,7 +215,7 @@ function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Noth
             wcs0 = WCS.from_header(header_str)[1]
             @assert wcs0.ctype[1] == "RA---CAR" 
             @assert wcs0.ctype[2] == "DEC--CAR"
-            wcs = convert(CarClenshawCurtis{Float64}, wcs0)
+            wcs = convert(CAR{Float64}, wcs0)
         end
     end
     Enmap(data, wcs)

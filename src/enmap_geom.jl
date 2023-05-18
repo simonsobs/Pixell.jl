@@ -10,23 +10,23 @@ function create_car_wcs(::Type{WCSTransform}, cdelt, crpix, crval)
 end
 
 # try to follow WCS.WCSTransform with degree units
-function create_car_wcs(::Type{CarClenshawCurtis{T}}, cdelt, crpix, crval) where T
-    return CarClenshawCurtis{T}(
+function create_car_wcs(::Type{CAR{T}}, cdelt, crpix, crval) where T
+    return CAR{T}(
         (cdelt[1], cdelt[2]), 
         (crpix[1], crpix[2]), 
         (crval[1], crval[2]), 
         π/180)  # degree conversion
 end
-create_car_wcs(::Type{CarClenshawCurtis}, cdelt, crpix, crval) = 
-    create_car_wcs(CarClenshawCurtis{Float64}, cdelt, crpix, crval)
+create_car_wcs(::Type{CAR}, cdelt, crpix, crval) = 
+    create_car_wcs(CAR{Float64}, cdelt, crpix, crval)
 
 """
-    fullsky_geometry([W=CarClenshawCurtis], res; shape = nothing, dims = ())
+    fullsky_geometry([W=CAR], res; shape = nothing, dims = ())
 
 Generates a full-sky geometry.
 
 # Arguments:
-- `proj=CarClenshawCurtis()`: [optional] projection
+- `proj=CAR()`: [optional] projection
 - `res`: resolution in radians. Passing a Number produces a square pixel.
 Passing a tuple with (ΔRA, ΔDEC) produces a rectangular pixel.
 
@@ -70,7 +70,7 @@ fullsky_geometry(W::Type{<:AbstractWCSTransform}, res::Number; shape = nothing, 
     fullsky_geometry(W, (res, res); shape = shape, dims = dims)
 
 fullsky_geometry(res; shape = nothing, dims = ()) =
-    fullsky_geometry(CarClenshawCurtis{Float64}, res; shape = shape, dims = dims)
+    fullsky_geometry(CAR{Float64}, res; shape = shape, dims = dims)
 
 
 # ONLY DOES CAR FOR NOW
