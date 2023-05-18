@@ -64,4 +64,10 @@ A CAR map is defined by these constants: a specific reference pixel with index `
 \end{aligned}
 ```
 
-The 
+These numbers are carried around by the [`Enmap`](@ref) structure, along with the array which contains the actual map information. When you perform map operations like slicing or copying, the [`Enmap`](@ref) should perform the right operations on these WCS coordinates. For example, when take a subset of a map with slicing, the `CRPIX` values have to be adjusted to reflect the new map shape.
+
+To relate the sky and pixel locations in Pixell, you call the [`sky2pix`](@ref) and [`pix2sky`](@ref) functions. 
+
+```julia
+print("example code")
+```
