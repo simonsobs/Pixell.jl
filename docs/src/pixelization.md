@@ -86,6 +86,3 @@ ra, dec = sky2pix(shape, wcs, ind_i, ind_j)
 ```
 
 For example, you might ask what the sky position of the pixel `(10,20)` is, with map value `my_map[i,j]`. Then you would find out the RA and DEC by calling `pix2sky(shape, wcs, 10, 20)`. Similarly, if you want to know what pixel covers some point on the sky with some RA and DEC such as ``\alpha=0``, ``\delta = \pi/4``, you would call `pix2sky(shape, wcs, 0.0, π/4)`.
-
-
-
