@@ -25,7 +25,7 @@ makedocs(;
         "Home" => "index.md",
         "Quickstart" => "quickstart.md",
         "Maps and Pixels" => "pixelization.md",
-        "Map Manipulation" => "map_manipulation.md",
+        "Configuration" => "config.md",
         "Developer Notes" => "developer_notes.md",
         "API" => "api.md",
     ],
