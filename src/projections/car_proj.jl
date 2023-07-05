@@ -255,12 +255,52 @@ function sliced_wcs(wcs::CarClenshawCurtis{T}, cdelt′, crpix′) where T
     return new_wcs
 end
 
-function pad(shape, wcs::CarClenshawCurtis{T}, npix::Int) where T
-    new_shape = shape .+ 2npix
+function pad(m::Enmap, npix_ra::Int, npix_dec::Int; mode=:center)
+    if mode == :center
+        center_pad(m, npix_ra, npix_dec)
+    elseif mode == :corner
+        corner_pad(m, npix_ra, npix_dec)
+    end
+end
+
+function center_pad(m::Enmap{T,N,AA,W}, npix_ra::Int, npix_dec::Int) where {T,N,AA,W<:CarClenshawCurtis}
+    new_shape, new_wcs = center_pad(size(m), m.wcs, npix_ra, npix_dec)
+    arr = AA(undef, new_shape)
+    fill!(arr, zero(T))
+    @views arr[
+        (begin+npix_ra):(end-npix_ra),
+        (begin+npix_dec):(end-npix_dec),
+        map(Base.oneto, size(m)[(begin+2):end])...] .= m.data
+    return Enmap(arr, new_wcs)
+end
+
+function center_pad(shape, wcs::CarClenshawCurtis{T}, npix_ra::Int, npix_dec) where T
+    new_shape = (shape[1] + 2npix_ra, shape[2] + 2npix_dec, shape[3:end]...)
     new_wcs = CarClenshawCurtis{T}(
         wcs.cdelt, 
-        wcs.crpix .+ npix, 
+        wcs.crpix .+ (npix_ra, npix_dec), 
         wcs.crval, 
         wcs.unit)  # degree conversion
     return new_shape, new_wcs
 end
+
+
+function corner_pad(m::Enmap{T,N,AA,W}, npix_ra::Int, npix_dec::Int) where {T,N,AA,W<:CarClenshawCurtis}
+    new_shape, new_wcs = corner_pad(size(m), m.wcs, npix_ra, npix_dec)
+    arr = AA(undef, new_shape)
+    fill!(arr, zero(T))
+    @views arr[
+        begin:(end-npix_ra),
+        begin:(end-npix_dec),
+        map(Base.oneto, size(m)[(begin+2):end])...] .= m.data
+    return Enmap(arr, new_wcs)
+end
+
+function corner_pad(shape, wcs::CarClenshawCurtis{T}, npix_ra::Int, npix_dec) where T
+    new_shape = (shape[1] + npix_ra, shape[2] + npix_dec, shape[3:end]...)
+    new_wcs = deepcopy(wcs)
+    return new_shape, new_wcs
+end
+
+pad(m::Enmap{T,N,AA,W}, npix; kwargs...) where {T,N,AA,W<:CarClenshawCurtis} = pad(m, npix, npix; kwargs...)
+
