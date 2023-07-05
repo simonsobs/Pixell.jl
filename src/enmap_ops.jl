@@ -168,12 +168,6 @@ end
 slice_geometry(m::Enmap, sel_all::Vararg) = slice_geometry(size(m), getwcs(m), sel_all...)
 
 
-function pad(m::Enmap{T,N,AA}, npix::Int) where {T,N,AA}
-    new_shape, new_wcs = pad(size(m), m.wcs, npix)
-    arr = AA(undef, new_shape)
-    return Enmap(arr, new_wcs)
-end
-
 struct SkyBoundingBox{T}
     α_min::T
     δ_min::T
