@@ -38,19 +38,28 @@ function Base.convert(::Type{CarFejer1{T}}, w0::WCSTransform) where T
 end
 
 function isfejer1(w0::WCSTransform)
-    cdelt, crpix, crval = getcdelt(w0), getcrpix(w0), getcrval(w0)
+    Δα, Δδ = getcdelt(w0)
+    skyloc = pix2sky(ones(Int, w0.naxis), w0, ones(w0.naxis))  # get first pixel
+    δ = rad2deg(skyloc[2])
     # reference DEC is an integer number of pixels from each pole minus half a pixel
-    half_from_pole = 90 - cdelt[2]/2
+    half_from_pole = 90 - Δδ/2
     npix1, npix2 = (half_from_pole - δ) / Δδ, (-half_from_pole - δ) / Δδ
-    return isapprox(δ + npix1 * Δδ, 90.0) && isapprox(δ + npix2 * Δδ, -90.0)
+    return isapprox(npix1, round(npix1)) && isapprox(npix2, round(npix2))
 end
 
-function isclenshawcurtis(w0::WCSTransform, tol=1e-6)
-    Δδ, j, δ = map(x->x[2], (getcdelt(w0), getcrpix(w0), getcrval(w0)))
+function isclenshawcurtis(w0::WCSTransform)
+    Δα, Δδ = getcdelt(w0)
+    skyloc = pix2sky(ones(Int, w0.naxis), w0, ones(w0.naxis))  # get first pixel
+    δ = rad2deg(skyloc[2])
     # reference DEC is an integer number of pixels from each pole
     npix1, npix2 = (90 - δ) / Δδ, (-90 - δ) / Δδ
-    return isapprox(δ + npix1 * Δδ, 90.0) && isapprox(δ + npix2 * Δδ, -90.0)
+    return isapprox(npix1, round(npix1)) && isapprox(npix2, round(npix2))
 end
+
+isclenshawcurtis(::CarClenshawCurtis) = true 
+isclenshawcurtis(x) = false 
+isfejer1(::CarFejer1) = true 
+isfejer1(x) = false 
 
 function Base.convert(::Type{WCSTransform}, w0::AbstractCARWCS)
     return WCSTransform(2;
