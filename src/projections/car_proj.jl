@@ -37,6 +37,21 @@ function Base.convert(::Type{CarFejer1{T}}, w0::WCSTransform) where T
         T.(getcdelt(w0)), T.(getcrpix(w0)), T.(getcrval(w0)), getunit(T, w0))
 end
 
+function isfejer1(w0::WCSTransform)
+    cdelt, crpix, crval = getcdelt(w0), getcrpix(w0), getcrval(w0)
+    # reference DEC is an integer number of pixels from each pole minus half a pixel
+    half_from_pole = 90 - cdelt[2]/2
+    npix1, npix2 = (half_from_pole - δ) / Δδ, (-half_from_pole - δ) / Δδ
+    return isapprox(δ + npix1 * Δδ, 90.0) && isapprox(δ + npix2 * Δδ, -90.0)
+end
+
+function isclenshawcurtis(w0::WCSTransform, tol=1e-6)
+    Δδ, j, δ = map(x->x[2], (getcdelt(w0), getcrpix(w0), getcrval(w0)))
+    # reference DEC is an integer number of pixels from each pole
+    npix1, npix2 = (90 - δ) / Δδ, (-90 - δ) / Δδ
+    return isapprox(δ + npix1 * Δδ, 90.0) && isapprox(δ + npix2 * Δδ, -90.0)
+end
+
 function Base.convert(::Type{WCSTransform}, w0::AbstractCARWCS)
     return WCSTransform(2;
         ctype = ["RA---CAR", "DEC--CAR"],
