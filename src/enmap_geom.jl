@@ -10,14 +10,16 @@ function create_car_wcs(::Type{WCSTransform}, cdelt, crpix, crval)
 end
 
 # try to follow WCS.WCSTransform with degree units
-function create_car_wcs(::Type{CarClenshawCurtis{T}}, cdelt, crpix, crval) where T
-    return CarClenshawCurtis{T}(
+function create_car_wcs(W::Type{<:AbstractCARWCS{T}}, cdelt, crpix, crval) where T
+    return W(
         (cdelt[1], cdelt[2]), 
         (crpix[1], crpix[2]), 
         (crval[1], crval[2]), 
         π/180)  # degree conversion
 end
 create_car_wcs(::Type{CarClenshawCurtis}, cdelt, crpix, crval) = 
+    create_car_wcs(CarClenshawCurtis{Float64}, cdelt, crpix, crval)
+create_car_wcs(::Type{CarFejer1}, cdelt, crpix, crval) = 
     create_car_wcs(CarClenshawCurtis{Float64}, cdelt, crpix, crval)
 
 """
@@ -44,7 +46,7 @@ julia> shape, wcs = fullsky_geometry(deg2rad(30/60))  # 30 arcmin pixel
 ((720, 361), WCSTransform(naxis=2,cdelt=[-0.5, 0.5],crval=[0.25, 0.0],crpix=[360.5, 181.0]))
 ```
 """
-function fullsky_geometry(W::Type{<:AbstractWCSTransform}, res; shape = nothing, dims = ())
+function fullsky_geometry(W::Type{<:CarClenshawCurtis{T}}, res; shape = nothing, dims = ()) where T
     if isnothing(shape)
         shape = (round.(Int, (2π, π) ./ res .+ (0, 1)))  # CAR has pixels on poles
     end
@@ -66,15 +68,15 @@ function fullsky_geometry(W::Type{<:AbstractWCSTransform}, res; shape = nothing,
     return (nx, ny, dims...), wcs
 end
 
-fullsky_geometry(W::Type{<:AbstractWCSTransform}, res::Number; shape = nothing, dims = ()) =
+fullsky_geometry(W::Type{<:CarClenshawCurtis{T}}, res::Number; shape = nothing, dims = ()) where T =
     fullsky_geometry(W, (res, res); shape = shape, dims = dims)
 
-fullsky_geometry(res; shape = nothing, dims = ()) =
-    fullsky_geometry(CarClenshawCurtis{Float64}, res; shape = shape, dims = dims)
+# fullsky_geometry(res; shape = nothing, dims = ()) =
+#     fullsky_geometry(Fejer1{Float64}, res; shape = shape, dims = dims)
 
 
 # ONLY DOES CAR FOR NOW
-function geometry(W::Type{<:AbstractWCSTransform}, bbox_coords, res)
+function geometry(W::Type{<:CarClenshawCurtis{T}}, bbox_coords, res) where T
 
     # get everything into radians
     res_in_radians = ustrip.(uconvert.(radian, res))
@@ -104,5 +106,5 @@ function geometry(W::Type{<:AbstractWCSTransform}, bbox_coords, res)
     return shape, wcs
 end
 
-geometry(W::Type{<:AbstractWCSTransform}, bbox_coords, res::Number) = 
+geometry(W::Type{<:CarClenshawCurtis{T}}, bbox_coords, res::Number) where T = 
     geometry(W, bbox_coords, (res, res))

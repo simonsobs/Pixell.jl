@@ -9,7 +9,7 @@ function gen_spin0!(m, powerlaw_exponent=2)
 end
 
 @testset "spin-0 SHTs" begin
-    shape, wcs = fullsky_geometry(10.0 * Pixell.degree)
+    shape, wcs = fullsky_geometry(CarClenshawCurtis{Float64}, 10.0 * Pixell.degree)
     m = Enmap(zeros(shape), wcs)
     gen_spin0!(m)
 
@@ -27,7 +27,7 @@ end
 
     box = [10   -10;           # RA
            -5     5] * Pixell.degree  # DEC
-    shape, wcs = geometry(CarClenshawCurtis, box, 1.0 * Pixell.degree)
+    shape, wcs = geometry(CarClenshawCurtis{Float64}, box, 1.0 * Pixell.degree)
     m = Enmap(zeros(shape), wcs)
     gen_spin0!(m, 2.5)
     alms = map2alm(m; lmax=100)
@@ -47,7 +47,7 @@ function gen_spin2!(m)
 end
 
 @testset "spin-2 SHTs" begin
-    shape, wcs = fullsky_geometry(10.0 * Pixell.degree; dims=(2,))
+    shape, wcs = fullsky_geometry(CarClenshawCurtis{Float64}, 10.0 * Pixell.degree; dims=(2,))
     m_QU = Enmap(zeros(shape), wcs)
     gen_spin2!(m_QU)
     alm_e, alm_b = map2alm(m_QU; lmax=3 * 36)
@@ -61,7 +61,7 @@ end
     @test (ref_alm_e ≈ alm_e.alm)
     @test (ref_alm_b ≈ alm_b.alm)
 
-    shape, wcs = fullsky_geometry(10.0 * Pixell.degree; dims=(3,))
+    shape, wcs = fullsky_geometry(CarClenshawCurtis{Float64}, 10.0 * Pixell.degree; dims=(3,))
     m_IQU = Enmap(zeros(shape), wcs)
     gen_spin0!(@view(m_IQU[:,:,1]))
     gen_spin2!(@view(m_IQU[:,:,2:3]))
