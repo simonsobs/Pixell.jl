@@ -216,7 +216,7 @@ function read_map(path::String; hdu::Int=1, sel=(), wcs::Union{WCSTransform,Noth
             wcs0 = WCS.from_header(header_str)[1]
             @assert wcs0.ctype[1] == "RA---CAR" 
             @assert wcs0.ctype[2] == "DEC--CAR"
-            wcs = convert(CarClenshawCurtis{Float64}, wcs0)
+            wcs = convert(CarClenshawCurtis{Float64}, wcs0)  # FIXME select between CC or Fejer1
         end
     end
     Enmap(data, wcs)

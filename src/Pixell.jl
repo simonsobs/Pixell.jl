@@ -11,7 +11,7 @@ import Unitful, UnitfulAngles
 import Unitful: uconvert, ustrip
 using StaticArrays
 using DSP: unwrap, unwrap!
-import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights
+import FastTransforms: chebyshevjacobimoments1, clenshawcurtisweights, fejerweights1
 using Libsharp
 import Libsharp: sharp_execute!
 import Healpix: Alm, map2alm, alm2map, alm2cl
@@ -32,7 +32,7 @@ include("plot.jl")
 include("transform_distance.jl")
 include("utils.jl")
 
-export Enmap, CarClenshawCurtis, Gnomonic, getwcs
+export Enmap, CarClenshawCurtis, CarFejer1, Gnomonic, getwcs
 export geometry, fullsky_geometry, slice_geometry, pad, SkyBoundingBox
 export pix2sky, pix2sky!, sky2pix, sky2pix!, skyarea, pixareamap, pixareamap!, posmap
 export read_map, write_map
