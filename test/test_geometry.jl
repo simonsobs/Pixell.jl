@@ -314,3 +314,28 @@ end
         @test sum(abs.(pm[1,:] .- pm_py)) < 100eps()
     end
 end
+
+@testset "extent_cyl" begin
+    shape = (3612, 1605)
+    wcs = Pixell.create_car_wcs(CarClenshawCurtis{Float64},  
+        (-0.00833333333333, 0.00833333333333), # cdelt
+        (1806.0, 1358.0),                      # crpix
+        (33.9416666667, 0.0)                   # crval
+    )
+    ref = ([0.5224453478223857, 0.23343778745414823])
+    ext = Pixell.extent_cyl(shape, wcs)
+    @test ref ≈ collect(ext)
+
+    ℓ_α, ℓ_δ = laxes_cyl(shape, wcs)
+    @test ℓ_α[0+1] ≈ -0.0
+    @test ℓ_α[720+1] ≈ -8659.074944442375
+    @test ℓ_α[1440+1] ≈ -17318.14988888475
+    @test ℓ_α[2160+1] ≈ 17462.467804625456
+    @test ℓ_α[2880+1] ≈ 8803.392860183081
+    @test ℓ_α[3600+1] ≈ 144.31791574070627
+    
+    @test ℓ_δ[0+1] ≈ 0.0
+    @test ℓ_δ[400+1] ≈ 10766.355140191221
+    @test ℓ_δ[1200+1] ≈ -10900.934579443612
+    @test ℓ_δ[1600+1] ≈ -134.57943925239027
+end

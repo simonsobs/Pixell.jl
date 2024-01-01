@@ -131,6 +131,36 @@ function skyarea_cyl(shape, wcs::AbstractWCSTransform)
     return (sin(δ₂) - sin(δ₁)) * abs(Δα) * N_α
 end
 
+function extent_cyl(shape, wcs::AbstractWCSTransform; signed=false)
+    N_α, N_δ = shape
+    α, δ = pix2sky(shape, wcs, SVector(0., 0.), SVector(0.5, N_δ+0.5); safe=false)
+    δ₁, δ₂ = sort(δ)
+    δ₁, δ₂ = max(-π/2, δ₁), min(π/2, δ₂)
+    δsign = δ₁ ≤ δ₂ ? 1 : -1
+    Δα, Δδ = getcdelt(wcs) .* getunit(wcs)
+    mean_cos   = (sin(δ₂) - sin(δ₁)) / (δ₂ - δ₁)
+    ext = (N_α * Δα * mean_cos, (δ₂ - δ₁)*δsign)
+    if signed
+        return ext
+    else
+        return abs.(ext)
+    end
+end
+
+
+"""
+    laxes_cyl(shape, wcs)
+
+Get multipole axes for a cylindrical pixelization, with a compromise choice for handling the
+spherical geometry that changes the angle between meridians in different declinations.
+"""
+function laxes_cyl(shape, wcs)
+    Δᾱ, Δδ̄ = extent_cyl(shape[1:2], wcs; signed=true) ./ shape
+    ℓ_δ = fftfreq(shape[2], 2π / Δδ̄)
+    ℓ_α = fftfreq(shape[1], 2π / Δᾱ)
+    return ℓ_α, ℓ_δ
+end
+
 function sliced_wcs(wcs::WCSTransform, cdelt′, crpix′)
     new_wcs = deepcopy(wcs)
     new_wcs.cdelt = collect(cdelt′)
