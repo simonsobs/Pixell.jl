@@ -8,9 +8,18 @@ def gen_simple(imap, powerlaw_exponent):
         for j in range(imap.shape[1]):
             imap[i,j] = (i * imap.shape[1] + j + 1)**powerlaw_exponent
 
-shape, wcs = enmap.fullsky_geometry(10.0*utils.degree)
+shape, wcs = enmap.fullsky_geometry(10.0*utils.degree, variant='CC')
 imap = enmap.zeros(shape, wcs=wcs)
 gen_simple(imap, 2)
+enmap.write_map("../data/cc.fits", imap)
+
+shape, wcs = enmap.fullsky_geometry(10.0*utils.degree, variant='fejer1')
+imap = enmap.zeros(shape, wcs=wcs)
+gen_simple(imap, 2)
+enmap.write_map("../data/fejer1.fits", imap)
+
+
+# %%
 
 alms = curvedsky.map2alm(imap, lmax=18, method="auto")
 np.savetxt("data/simple_analytic_sht.txt", np.column_stack([alms.real, alms.imag]), fmt='%.60g')

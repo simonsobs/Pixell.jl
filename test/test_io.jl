@@ -14,3 +14,24 @@
     end
     # todo: add tests on IAU conversion w/ and w/o sel
 end
+
+##
+@testset "Enmap ClenshawCurtis vs Fejer1" begin
+    
+    imap1 = read_map("data/cc.fits"; trim=false)
+    @test Pixell.isfejer1(imap1.wcs) == false
+    @test Pixell.isclenshawcurtis(imap1.wcs)
+
+    imap2= read_map("data/fejer1.fits"; trim=false)
+    @test Pixell.isfejer1(imap2.wcs)
+    @test Pixell.isclenshawcurtis(imap2.wcs) == false
+
+    imap1 = read_map("data/cc.fits"; trim=true)
+    @test Pixell.isfejer1(imap1.wcs) == false
+    @test Pixell.isclenshawcurtis(imap1.wcs)
+
+    imap2= read_map("data/fejer1.fits"; trim=true)
+    @test Pixell.isfejer1(imap2.wcs)
+    @test Pixell.isclenshawcurtis(imap2.wcs) == false
+
+end

@@ -3,7 +3,7 @@
 
     box = [20   -20;           # RA
           -10     10] * degree  # DEC
-    shape, wcs = geometry(Pixell.WCS.WCSTransform, box, (1/2) * degree)
+    shape, wcs = geometry(CarClenshawCurtis{Float64}, box, (1/2) * degree)
 
     for kk in 1:300
         m = Enmap(ones(shape), wcs)
@@ -26,7 +26,7 @@ end
 @testset "distance transform metric" begin
     box = [20   -20;           # RA
            0     10] * degree  # DEC
-    shape, wcs = geometry(Pixell.WCS.WCSTransform, box, (1/2) * degree)
+    shape, wcs = geometry(CarClenshawCurtis{Float64}, box, (1/2) * degree)
 
     m = Enmap(ones(shape), wcs)
     m[1,1] = 0.0
